@@ -1,26 +1,28 @@
 {
-  "name": "tennis-booking",
-  "version": "0.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "format": "oxfmt src/"
-  },
-  "dependencies": {
-    "pinia": "^3.0.4",
-    "vue": "^3.5.29",
-    "vue-router": "^5.0.3"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-vue": "^6.0.4",
-    "oxfmt": "^0.35.0",
-    "vite": "^7.3.1",
-    "vite-plugin-vue-devtools": "^8.0.6"
-  },
-  "engines": {
-    "node": "^20.19.0 || >=22.12.0"
-  }
+    "name": "tennis-booking",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@line/liff": "^2.27.3",
+        "date-fns": "^4.1.0",
+        "firebase": "^12.9.0",
+        "pinia": "^3.0.4",
+        "vue": "^3.5.29",
+        "vue-router": "^5.0.3"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-vue": "^6.0.4",
+        "prettier": "^3.2.5",
+        "vite": "^7.3.1",
+        "vite-plugin-vue-devtools": "^8.0.6"
+    },
+    "engines": {
+        "node": "^20.19.0 || >=22.12.0"
+    }
 }
