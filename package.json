@@ -1,6 +1,6 @@
 {
     "name": "tennis-booking",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "private": true,
     "type": "module",
     "scripts": {
@@ -11,7 +11,7 @@
     "dependencies": {
         "@line/liff": "^2.27.3",
         "date-fns": "^4.1.0",
-        "firebase": "^12.9.0",
+        "firebase": "^10.8.1",
         "pinia": "^3.0.4",
         "vue": "^3.5.29",
         "vue-router": "^5.0.3"

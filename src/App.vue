@@ -1,35 +1,26 @@
 <template>
-    <div id="app">
-        <header v-if="isLoggedIn" class="app-header">
+    <div id="app" :class="{ 'admin-mode': isAdminRoute }">
+        <!-- ฝั่ง User (LIFF) แสดง Header แบบเดิม -->
+        <header v-if="!isAdminRoute && isLoggedIn" class="app-header">
             <div class="user-profile" v-if="profile">
                 <img :src="profile.pictureUrl" :alt="profile.displayName" />
-                <span class="user-name" @dblclick="showAdmin = !showAdmin">{{ profile.displayName }}</span>
+                <span class="user-name">{{ profile.displayName }}</span>
                 <button class="btn logout-btn" @click="logout">Logout</button>
             </div>
         </header>
 
-        <div v-else-if="!isLoggedIn" class="login-container">
-            <button class="btn login-btn" @click="login">Login with LINE</button>
+        <!-- หน้า Login สำหรับ User -->
+        <div v-if="!isAdminRoute && !isLoggedIn" class="user-login-container">
+            <div class="welcome-box">
+                <img src="/favicon.ico" alt="Logo" class="app-logo" />
+                <h1>Tennis Booking</h1>
+                <p>กรุณาเข้าสู่ระบบเพื่อจองสนาม</p>
+                <button class="btn login-btn" @click="login">Login with LINE</button>
+            </div>
         </div>
 
-        <main class="content">
-            <!-- โชว์ปุ่มถ้าไม่มี courts (โครงสร้างใหม่) หรือถ้ากด dblclick ที่ชื่อโปรไฟล์ -->
-            <div v-if="isLoggedIn && (!courts || courts.length === 0 || showAdmin)" class="setup-container">
-                <p v-if="!courts || courts.length === 0">พบโครงสร้างข้อมูลแบบเก่า กรุณาอัปเดต</p>
-                <p v-else>Admin Mode</p>
-                <button @click="handleSeedData" class="btn setup-btn">
-                    อัปเดตข้อมูลสนาม (SaaS Structure)
-                </button>
-            </div>
-
-            <div v-if="courtName" class="court-info">
-                <h2>{{ courtName }}</h2>
-                <div class="badge-container">
-                    <span class="badge" v-if="courts">{{ courts.length }} คอร์ท</span>
-                    <span class="badge" v-if="bookingAdvanceDays">จองล่วงหน้าได้ {{ bookingAdvanceDays }} วัน</span>
-                </div>
-            </div>
-
+        <!-- พื้นที่แสดงเนื้อหาหลัก -->
+        <main :class="contentClass">
             <RouterView />
         </main>
     </div>
@@ -41,27 +32,26 @@ import { useLiffStore } from './stores/liff'
 import { useConfigStore } from './stores/config'
 
 export default {
-    data() {
-        return {
-            showAdmin: false
-        }
-    },
     computed: {
         ...mapState(useLiffStore, ['profile', 'isLoggedIn']),
-        ...mapState(useConfigStore, ['courtName', 'courts', 'bookingAdvanceDays', 'isLoading'])
+        isAdminRoute() {
+            return this.$route.path.startsWith('/admin')
+        },
+        contentClass() {
+            return {
+                'content-user': !this.isAdminRoute,
+                'content-admin': this.isAdminRoute
+            }
+        }
     },
     methods: {
         ...mapActions(useLiffStore, ['initLiff', 'login', 'logout']),
-        ...mapActions(useConfigStore, ['fetchConfig', 'seedInitialData']),
-        async handleSeedData() {
-            const tenantId = 'court_001'
-            await this.seedInitialData(tenantId)
-            this.showAdmin = false
-        }
+        ...mapActions(useConfigStore, ['fetchConfig'])
     },
     async mounted() {
+        // Init LIFF เฉพาะเมื่อไม่ได้อยู่หน้า Admin หรือถ้าจำเป็นต้องใช้
         const liffId = import.meta.env.VITE_LIFF_ID
-        if (liffId) {
+        if (liffId && !this.isAdminRoute) {
             await this.initLiff(liffId)
         }
 
@@ -71,22 +61,44 @@ export default {
 }
 </script>
 
-<style scoped>
-#app {
+<style>
+/* Global Reset */
+body {
+    margin: 0;
+    padding: 0;
     font-family: 'Inter', sans-serif;
-    max-width: 600px;
-    margin: 0 auto;
     background-color: #fcfcfc;
+}
+
+#app {
     min-height: 100vh;
 }
 
+/* User Layout (Max-width 600px) */
+.content-user {
+    max-width: 600px;
+    margin: 0 auto;
+    background-color: #fff;
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
 .app-header {
+    max-width: 600px;
+    margin: 0 auto;
     background-color: #fff;
     padding: 1rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     position: sticky;
     top: 0;
     z-index: 100;
+}
+
+/* Admin Layout (Full Width) */
+.content-admin {
+    width: 100%;
+    margin: 0;
+    background-color: #f0f2f5;
 }
 
 .user-profile {
@@ -102,24 +114,12 @@ export default {
     border: 2px solid #00b900;
 }
 
-.user-name {
-    font-weight: 600;
-    flex-grow: 1;
-    font-size: 0.95rem;
-}
-
 .btn {
     padding: 8px 16px;
     border-radius: 8px;
     border: none;
     cursor: pointer;
     font-weight: 600;
-    font-size: 0.9rem;
-    transition: opacity 0.2s;
-}
-
-.btn:active {
-    opacity: 0.7;
 }
 
 .login-btn {
@@ -127,63 +127,19 @@ export default {
     color: white;
     width: 100%;
     padding: 16px;
-    font-size: 1.1rem;
 }
 
-.logout-btn {
-    background-color: #f5f5f5;
-    color: #666;
-}
-
-.setup-container {
-    padding: 24px;
-    text-align: center;
-    border: 2px dashed #00b900;
-    margin: 20px;
-    border-radius: 16px;
-    background-color: #f6ffed;
-}
-
-.setup-btn {
-    background-color: #00b900;
-    color: white;
-    margin-top: 12px;
-}
-
-.court-info {
-    padding: 20px 20px 10px 20px;
-}
-
-.court-info h2 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: #333;
-}
-
-.badge-container {
-    display: flex;
-    gap: 8px;
-    margin-top: 8px;
-}
-
-.badge {
-    background: #e6f7ff;
-    color: #1890ff;
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.8rem;
-    font-weight: 600;
-}
-
-.content {
-    padding: 0;
-}
-
-.login-container {
+.user-login-container {
+    max-width: 600px;
+    margin: 0 auto;
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80vh;
+    height: 100vh;
     padding: 20px;
+    background-color: #fff;
 }
+
+.welcome-box { text-align: center; width: 100%; }
+.app-logo { width: 80px; margin-bottom: 20px; }
 </style>

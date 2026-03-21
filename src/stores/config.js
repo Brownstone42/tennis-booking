@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia'
 import { db } from '../firebase'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 
 export const useConfigStore = defineStore('config', {
     state: () => ({
         courtName: '',
         operatingHours: { open: 6, close: 22 },
-        defaultPricing: [], // เปลี่ยนจาก pricing เป็น defaultPricing
+        defaultPricing: [],
         refundPolicy: [],
-        courts: [], // เปลี่ยนจาก courtCount เป็น array ของ courts
+        courts: [],
         bookingAdvanceDays: null,
         isLoading: true
     }),
@@ -22,17 +22,29 @@ export const useConfigStore = defineStore('config', {
                 if (docSnap.exists()) {
                     const data = docSnap.data()
                     this.courtName = data.name
-                    this.operatingHours = data.operatingHours
+                    this.operatingHours = data.operatingHours || { open: 6, close: 22 }
                     this.defaultPricing = data.defaultPricing || data.pricing || []
-                    this.refundPolicy = data.refundPolicy
+                    this.refundPolicy = data.refundPolicy || []
                     this.courts = data.courts || []
                     this.bookingAdvanceDays =
-                        data.bookingAdvanceDays !== undefined ? data.bookingAdvanceDays : null
+                        data.bookingAdvanceDays !== undefined ? data.bookingAdvanceDays : 30
                 }
             } catch (error) {
                 console.error('Error fetching config:', error)
             } finally {
                 this.isLoading = false
+            }
+        },
+        async saveConfig(tenantId, configData) {
+            try {
+                const docRef = doc(db, 'settings', tenantId)
+                await updateDoc(docRef, configData)
+                // Update local state
+                Object.assign(this.$state, configData)
+                return true
+            } catch (error) {
+                console.error('Error saving config:', error)
+                throw error
             }
         },
         async seedInitialData(tenantId) {
