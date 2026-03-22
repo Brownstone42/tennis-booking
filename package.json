@@ -7,7 +7,8 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
-        "tunnel": "npx cloudflared tunnel --url http://localhost:5173"
+        "tunnel": "npx cloudflared tunnel --url http://localhost:5173",
+        "ngrok": "npx ngrok http --url=semiboiled-befittingly-buster.ngrok-free.dev 5173"
     },
     "dependencies": {
         "@line/liff": "^2.27.3",
