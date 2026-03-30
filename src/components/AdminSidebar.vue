@@ -5,9 +5,15 @@
             <span>Tennis Admin</span>
         </div>
         <nav class="sidebar-nav">
-            <router-link :to="{ name: 'admin-dashboard' }" active-class="active">📊 แดชบอร์ด</router-link>
-            <router-link :to="{ name: 'admin-schedule' }" active-class="active">📅 จัดการตารางเวลา</router-link>
-            <router-link :to="{ name: 'admin-settings' }" active-class="active">⚙️ ตั้งค่าสนาม</router-link>
+            <router-link :to="{ name: 'admin-dashboard' }" active-class="active"
+                >📊 แดชบอร์ด</router-link
+            >
+            <router-link :to="{ name: 'admin-schedule' }" active-class="active"
+                >📅 จัดการตารางเวลา</router-link
+            >
+            <router-link :to="{ name: 'admin-settings' }" active-class="active"
+                >⚙️ ตั้งค่าสนาม</router-link
+            >
         </nav>
         <div class="sidebar-footer">
             <button @click="logout">Log Out</button>
@@ -48,10 +54,12 @@ export default {
     gap: 12px;
     font-size: 1.2rem;
     font-weight: bold;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.sidebar-logo img { width: 32px; }
+.sidebar-logo img {
+    width: 32px;
+}
 
 .sidebar-nav {
     flex-grow: 1;
@@ -61,19 +69,20 @@ export default {
 .sidebar-nav a {
     display: block;
     padding: 14px 24px;
-    color: rgba(255,255,255,0.7);
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     transition: all 0.2s;
 }
 
-.sidebar-nav a:hover, .sidebar-nav a.active {
+.sidebar-nav a:hover,
+.sidebar-nav a.active {
     background: #1890ff;
     color: white;
 }
 
 .sidebar-footer {
     padding: 20px;
-    border-top: 1px solid rgba(255,255,255,0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-footer button {

@@ -36,7 +36,7 @@
                             <button class="btn-primary">+ เพิ่มการจอง (Manual)</button>
                         </div>
                     </div>
-                    
+
                     <div class="table-card">
                         <table>
                             <thead>
@@ -61,7 +61,9 @@
                                     <td>฿{{ booking.amount }}</td>
                                     <td>
                                         <span :class="['status-tag', booking.status]">
-                                            {{ booking.status === 'paid' ? 'สำเร็จ' : 'รอดำเนินการ' }}
+                                            {{
+                                                booking.status === 'paid' ? 'สำเร็จ' : 'รอดำเนินการ'
+                                            }}
                                         </span>
                                     </td>
                                     <td>
@@ -70,7 +72,9 @@
                                     </td>
                                 </tr>
                                 <tr v-if="bookings.length === 0">
-                                    <td colspan="8" class="empty-row">ยังไม่มีข้อมูลการจองในระบบ</td>
+                                    <td colspan="8" class="empty-row">
+                                        ยังไม่มีข้อมูลการจองในระบบ
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -102,12 +106,12 @@ export default {
     computed: {
         todayBookingsCount() {
             const today = format(new Date(), 'yyyy-MM-dd')
-            return this.bookings.filter(b => b.date === today && b.status === 'paid').length
+            return this.bookings.filter((b) => b.date === today && b.status === 'paid').length
         },
         todayRevenue() {
             const today = format(new Date(), 'yyyy-MM-dd')
             return this.bookings
-                .filter(b => b.date === today && b.status === 'paid')
+                .filter((b) => b.date === today && b.status === 'paid')
                 .reduce((sum, b) => sum + (Number(b.amount) || 0), 0)
                 .toLocaleString()
         }
@@ -116,7 +120,7 @@ export default {
         fetchBookings() {
             const q = query(collection(db, 'bookings'), orderBy('createdAt', 'desc'))
             this.unsubscribe = onSnapshot(q, (snapshot) => {
-                this.bookings = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+                this.bookings = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
             })
         }
     },
@@ -137,28 +141,123 @@ export default {
 </script>
 
 <style scoped>
-.admin-layout { display: flex; min-height: 100vh; background: #f4f7f9; }
-.main-body { flex-grow: 1; }
-.top-bar { background: white; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
-.page-title h1 { margin: 0; font-size: 1.4rem; color: #333; }
-.date-today { font-size: 0.85rem; color: #999; }
-.dashboard-content { padding: 32px; }
+.admin-layout {
+    display: flex;
+    min-height: 100vh;
+    background: #f4f7f9;
+}
+.main-body {
+    flex-grow: 1;
+}
+.top-bar {
+    background: white;
+    padding: 16px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+}
+.page-title h1 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #333;
+}
+.date-today {
+    font-size: 0.85rem;
+    color: #999;
+}
+.dashboard-content {
+    padding: 32px;
+}
 
-.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 24px; margin-bottom: 32px; }
-.stat-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
-.stat-label { color: #888; font-size: 0.9rem; margin-bottom: 8px; }
-.stat-value { font-size: 1.8rem; font-weight: 800; color: #1a1a1a; }
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+.stat-card {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+}
+.stat-label {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+}
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #1a1a1a;
+}
 
-.data-section { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); }
-.section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-.btn-primary { background: #1890ff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.data-section {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+.btn-primary {
+    background: #1890ff;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+}
 
-table { width: 100%; border-collapse: collapse; }
-th { text-align: left; padding: 16px; background: #fafafa; color: #555; font-size: 0.85rem; border-bottom: 1px solid #f0f0f0; }
-td { padding: 16px; border-bottom: 1px solid #f0f0f0; font-size: 0.9rem; }
-.status-tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
-.status-tag.paid { background: #f6ffed; color: #52c41a; }
-.status-tag.pending { background: #fff7e6; color: #faad14; }
-.btn-icon { background: none; border: none; cursor: pointer; margin-right: 8px; font-size: 1rem; }
-.empty-row { text-align: center; padding: 60px !important; color: #999; }
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+th {
+    text-align: left;
+    padding: 16px;
+    background: #fafafa;
+    color: #555;
+    font-size: 0.85rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+td {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.9rem;
+}
+.status-tag {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+.status-tag.paid {
+    background: #f6ffed;
+    color: #52c41a;
+}
+.status-tag.pending {
+    background: #fff7e6;
+    color: #faad14;
+}
+.btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-right: 8px;
+    font-size: 1rem;
+}
+.empty-row {
+    text-align: center;
+    padding: 60px !important;
+    color: #999;
+}
 </style>

@@ -4,13 +4,18 @@
             <div class="fail-icon">❌</div>
             <h1>การชำระเงินไม่สำเร็จ</h1>
             <p>{{ errorMessage || 'เกิดข้อผิดพลาดในการดำเนินการชำระเงิน กรุณาลองใหม่อีกครั้ง' }}</p>
-            
+
             <section class="error-card">
-                <p>หากคุณถูกตัดเงินแล้วแต่สถานะไม่เปลี่ยน กรุณาติดต่อเจ้าหน้าที่สนามพร้อมหลักฐานการโอนเงิน</p>
+                <p>
+                    หากคุณถูกตัดเงินแล้วแต่สถานะไม่เปลี่ยน
+                    กรุณาติดต่อเจ้าหน้าที่สนามพร้อมหลักฐานการโอนเงิน
+                </p>
             </section>
 
             <div class="button-group">
-                <button class="retry-btn" @click="$router.push('/')">กลับหน้าหลักเพื่อลองใหม่</button>
+                <button class="retry-btn" @click="$router.push('/')">
+                    กลับหน้าหลักเพื่อลองใหม่
+                </button>
                 <button class="close-btn" @click="closeLiff">ปิดหน้าต่าง</button>
             </div>
         </main>
@@ -58,8 +63,15 @@ export default {
     margin-bottom: 24px;
 }
 
-h1 { font-size: 1.8rem; margin-bottom: 12px; color: #333; }
-p { color: #666; margin-bottom: 30px; }
+h1 {
+    font-size: 1.8rem;
+    margin-bottom: 12px;
+    color: #333;
+}
+p {
+    color: #666;
+    margin-bottom: 30px;
+}
 
 .error-card {
     background: #fff1f0;
@@ -101,5 +113,14 @@ p { color: #666; margin-bottom: 30px; }
     animation: fadeIn 0.6s ease-out;
 }
 
-@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
 </style>

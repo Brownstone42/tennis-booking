@@ -60,8 +60,18 @@ export const useConfigStore = defineStore('config', {
                     courts: [
                         { id: 1, name: 'คอร์ท 1', type: 'Outdoor' },
                         { id: 2, name: 'คอร์ท 2', type: 'Outdoor' },
-                        { id: 3, name: 'คอร์ท 3', type: 'Indoor', pricing: [{ start: 6, end: 22, rate: 600 }] },
-                        { id: 4, name: 'คอร์ท 4', type: 'Indoor', pricing: [{ start: 6, end: 22, rate: 600 }] }
+                        {
+                            id: 3,
+                            name: 'คอร์ท 3',
+                            type: 'Indoor',
+                            pricing: [{ start: 6, end: 22, rate: 600 }]
+                        },
+                        {
+                            id: 4,
+                            name: 'คอร์ท 4',
+                            type: 'Indoor',
+                            pricing: [{ start: 6, end: 22, rate: 600 }]
+                        }
                     ],
                     refundPolicy: [
                         { hoursBefore: 72, refundPercent: 100 },

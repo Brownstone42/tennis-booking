@@ -55,7 +55,7 @@ export default {
             await this.initLiff(liffId)
         }
 
-        const tenantId = 'court_001' 
+        const tenantId = 'court_001'
         await this.fetchConfig(tenantId)
     }
 }
@@ -80,7 +80,7 @@ body {
     margin: 0 auto;
     background-color: #fff;
     min-height: 100vh;
-    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.05);
 }
 
 .app-header {
@@ -140,6 +140,12 @@ body {
     background-color: #fff;
 }
 
-.welcome-box { text-align: center; width: 100%; }
-.app-logo { width: 80px; margin-bottom: 20px; }
+.welcome-box {
+    text-align: center;
+    width: 100%;
+}
+.app-logo {
+    width: 80px;
+    margin-bottom: 20px;
+}
 </style>
