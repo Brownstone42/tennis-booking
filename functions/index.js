@@ -20,12 +20,14 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
         request.data
 
     try {
+        const expiresAt = new Date(Date.now() + 60 * 1000).toISOString()
         const chargeData = {
             amount: amount,
             currency: 'thb',
             description: `Booking for ${displayName} at Court ${courtId} on ${date}`,
             // return_uri สำหรับกรณีที่ลูกค้าไม่ได้จ่ายผ่านหน้าเรา (เช่นไปจ่ายที่แอปธนาคารแล้วระบบเด้งกลับ)
             return_uri: `https://${process.env.GCLOUD_PROJECT}.web.app/success`,
+            expires_at: expiresAt,
             metadata: { tenantId, courtId, date, hours, phone, userId }
         }
 
@@ -76,8 +78,58 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
     }
 })
 
+exports.checkBookingStatus = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request) => {
+    const { bookingId } = request.data
+    const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY
+    if (!OMISE_SECRET_KEY) {
+        throw new HttpsError('failed-precondition', 'OMISE_SECRET_KEY not set in secrets.')
+    }
+
+    const client = omise({ secretKey: OMISE_SECRET_KEY })
+
+    try {
+        const bookingSnap = await db.collection('bookings').doc(bookingId).get()
+        if (!bookingSnap.exists) {
+            throw new HttpsError('not-found', 'Booking not found.')
+        }
+
+        const booking = bookingSnap.data()
+        // If it's already in a final state, just return
+        if (booking.status === 'paid' || booking.status === 'expired' || booking.status === 'failed') {
+            return { success: true, status: booking.status }
+        }
+
+        // Retrieve the latest charge status from Omise
+        const charge = await client.charges.retrieve(booking.omiseChargeId)
+
+        let newStatus = booking.status
+        if (charge.status === 'successful') {
+            newStatus = 'paid'
+        } else if (charge.status === 'failed') {
+            // Omise failure_code can be 'expired_charge' when it expires
+            newStatus = charge.failure_code === 'expired_charge' ? 'expired' : 'failed'
+        } else if (charge.status === 'expired') {
+            newStatus = 'expired'
+        }
+
+        // If the status has changed, update Firestore
+        if (newStatus !== booking.status) {
+            await bookingSnap.ref.update({
+                status: newStatus,
+                paidAt: newStatus === 'paid' ? FieldValue.serverTimestamp() : null
+            })
+        }
+
+        return { success: true, status: newStatus }
+    } catch (error) {
+        console.error('Check Charge Error:', error)
+        throw new HttpsError('internal', error.message)
+    }
+})
+
 exports.omiseWebhook = onRequest(async (req, res) => {
     const event = req.body
+    console.log('Omise Webhook received! Key:', event.key, 'Full Payload:', JSON.stringify(event))
     if (event.key === 'charge.complete') {
         const charge = event.data
         try {
@@ -88,8 +140,14 @@ exports.omiseWebhook = onRequest(async (req, res) => {
                 .get()
 
             if (!snapshot.empty) {
+                let newStatus = charge.status === 'successful' ? 'paid' : 'failed'
+                // If Omise specifically says it's expired, update status to 'expired'
+                if (charge.status === 'failed' && charge.failure_code === 'expired_charge') {
+                    newStatus = 'expired'
+                }
+
                 await snapshot.docs[0].ref.update({
-                    status: charge.status === 'successful' ? 'paid' : 'failed',
+                    status: newStatus,
                     paidAt: charge.status === 'successful' ? FieldValue.serverTimestamp() : null
                 })
             }

@@ -257,7 +257,9 @@ export default {
             isGenerating: false,
             isLoading: false,
             slots: [], // Local cache of slots
+            bookings: [], // Local cache of bookings
             unsubscribe: null,
+            bookingsUnsubscribe: null,
             genStart: format(new Date(), 'yyyy-MM-dd'),
             genEnd: format(addDays(new Date(), 7), 'yyyy-MM-dd'),
             isSelectionMode: false,
@@ -287,7 +289,21 @@ export default {
             const map = new Map()
             this.slots.forEach((s) => {
                 const key = `${s.date}_${s.courtId}_${s.hour}`
-                map.set(key, s)
+
+                // Check for overlapping bookings
+                const booking = this.bookings.find(
+                    (b) =>
+                        b.date === s.date &&
+                        Number(b.courtId) === Number(s.courtId) &&
+                        b.hours.includes(Number(s.hour)) &&
+                        (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+                )
+
+                if (booking) {
+                    map.set(key, { ...s, booking })
+                } else {
+                    map.set(key, s)
+                }
             })
             return map
         }
@@ -300,6 +316,13 @@ export default {
             // Use the map for lookup
             const key = `${date}_${courtId}_${hour}`
             return this.slotsMap.get(key)
+        },
+        isBookingExpired(booking) {
+            if (booking.status !== 'pending') return false
+            if (!booking.createdAt) return false
+            const now = new Date()
+            const diffInSeconds = (now - booking.createdAt.toDate()) / 1000
+            return diffInSeconds > 60 // 1 minute timeout
         },
         getPriceForHour(court, hour) {
             // Check court specific pricing first
@@ -322,6 +345,19 @@ export default {
                 this.isLoading = true
                 for (const day of days) {
                     const dateStr = format(day, 'yyyy-MM-dd')
+
+                    // Record this date as an active day for customers to see
+                    const activeDayRef = doc(db, 'active_days', dateStr)
+                    batch.set(
+                        activeDayRef,
+                        {
+                            date: dateStr,
+                            tenantId: 'court_001',
+                            updatedAt: new Date()
+                        },
+                        { merge: true }
+                    )
+
                     for (const court of this.courts) {
                         for (
                             let hour = this.operatingHours.open;
@@ -398,9 +434,6 @@ export default {
                 (snapshot) => {
                     this.slots = snapshot.docs.map((doc) => doc.data())
                     this.isLoading = false
-                    console.log(`Fetched ${this.slots.length} slots`)
-                    console.log('Courts:', this.courts)
-                    console.log('Operating Hours:', this.operatingHours)
                 },
                 (error) => {
                     console.error('Firestore error:', error)
@@ -408,6 +441,31 @@ export default {
                     this.isLoading = false
                 }
             )
+
+            // Also fetch bookings
+            let bq
+            if (this.currentView === 'daily') {
+                bq = query(
+                    collection(db, 'bookings'),
+                    where('tenantId', '==', 'court_001'),
+                    where('date', '==', this.selectedDate),
+                    where('status', 'in', ['paid', 'pending'])
+                )
+            } else {
+                const weekDates = this.weekDays.map((d) => d.dateStr)
+                bq = query(
+                    collection(db, 'bookings'),
+                    where('tenantId', '==', 'court_001'),
+                    where('courtId', '==', Number(this.selectedCourtId)),
+                    where('date', 'in', weekDates),
+                    where('status', 'in', ['paid', 'pending'])
+                )
+            }
+
+            if (this.bookingsUnsubscribe) this.bookingsUnsubscribe()
+            this.bookingsUnsubscribe = onSnapshot(bq, (snapshot) => {
+                this.bookings = snapshot.docs.map((doc) => doc.data())
+            })
         },
         toggleSelection(slotId) {
             const index = this.selectedSlotIds.indexOf(slotId)
@@ -424,22 +482,24 @@ export default {
             this.selectedSlotIds = []
         },
         selectAllInCourt(courtId) {
-            // Find all slots currently displayed for this court
-            const courtSlots = this.slots
-                .filter((s) => String(s.courtId) == String(courtId))
+            // Find all slots currently displayed for this court that ARE NOT booked
+            const courtSlots = Array.from(this.slotsMap.values())
+                .filter((s) => String(s.courtId) == String(courtId) && !s.booking)
                 .map((s) => s.id)
             this.addManyToSelection(courtSlots)
         },
         selectAllInRow(hour) {
-            // Find all slots currently displayed for this hour
-            const rowSlots = this.slots
-                .filter((s) => Number(s.hour) == Number(hour))
+            // Find all slots currently displayed for this hour that ARE NOT booked
+            const rowSlots = Array.from(this.slotsMap.values())
+                .filter((s) => Number(s.hour) == Number(hour) && !s.booking)
                 .map((s) => s.id)
             this.addManyToSelection(rowSlots)
         },
         selectAllInDay(date) {
-            // Find all slots currently displayed for this date
-            const daySlots = this.slots.filter((s) => s.date == date).map((s) => s.id)
+            // Find all slots currently displayed for this date that ARE NOT booked
+            const daySlots = Array.from(this.slotsMap.values())
+                .filter((s) => s.date == date && !s.booking)
+                .map((s) => s.id)
             this.addManyToSelection(daySlots)
         },
         addManyToSelection(ids) {
@@ -493,6 +553,7 @@ export default {
     },
     beforeUnmount() {
         if (this.unsubscribe) this.unsubscribe()
+        if (this.bookingsUnsubscribe) this.bookingsUnsubscribe()
     }
 }
 </script>

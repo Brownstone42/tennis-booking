@@ -19,92 +19,110 @@
             </div>
         </section>
 
-        <!-- 2. เลือกคอร์ท -->
-        <section class="court-selector">
-            <h3>เลือกสนาม</h3>
-            <div class="court-list">
-                <button
-                    v-for="court in courts"
-                    :key="court.id"
-                    class="court-item"
-                    :class="{ active: selectedCourtId === court.id }"
-                    @click="selectCourt(court.id)"
-                >
-                    <div class="court-name">{{ court.name }}</div>
-                    <div class="court-type">{{ court.type }}</div>
-                </button>
-            </div>
-        </section>
-
-        <!-- 3. เลือกเวลา -->
-        <section class="time-selector">
-            <div class="section-header">
-                <h3>เลือกเวลา</h3>
-                <span class="price-hint" v-if="!isLoading">*ราคาต่อชั่วโมง</span>
-            </div>
-
-            <div class="time-grid-wrapper">
-                <transition name="fade">
-                    <div v-if="isLoading" class="loading-overlay">
-                        <div class="spinner"></div>
-                        <span>กำลังอัปเดตข้อมูล...</span>
-                    </div>
-                </transition>
-
-                <div class="time-grid" :class="{ 'content-loading': isLoading }">
+        <!-- 2. เลือกคอร์ท + เลือกเวลา + สรุปการจอง (แสดงเมื่อมีวันเปิด) -->
+        <template v-if="availableDates.length > 0">
+            <!-- 2. เลือกคอร์ท -->
+            <section class="court-selector">
+                <h3>เลือกสนาม</h3>
+                <div class="court-list">
                     <button
-                        v-for="hour in timeSlots"
-                        :key="hour"
-                        class="time-slot"
+                        v-for="court in courts"
+                        :key="court.id"
+                        class="court-item"
                         :class="{
-                            selected: selectedHours.includes(hour),
-                            booked: isBooked(hour)
+                            active: selectedCourtId === court.id,
+                            'is-full': isCourtFull(court.id)
                         }"
-                        :disabled="isBooked(hour) || isLoading"
-                        @click="toggleHour(hour)"
+                        @click="selectCourt(court.id)"
                     >
-                        <span class="time-text"
-                            >{{ formatTime(hour) }} - {{ formatTime(hour + 1) }}</span
-                        >
-                        <span v-if="isBooked(hour)" class="price-text booked-label">
-                            {{ getSlotStatusLabel(hour) || 'ไม่ว่าง' }}
-                        </span>
-                        <span v-else class="price-text"
-                            >฿{{ getPrice(hour).toLocaleString() }}</span
-                        >
+                        <div class="court-badge" v-if="isCourtFull(court.id)">เต็ม</div>
+                        <div class="court-name">{{ court.name }}</div>
+                        <div class="court-type">{{ court.type }}</div>
                     </button>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- 4. สรุปการจอง -->
-        <transition name="slide-up">
-            <footer v-if="selectedHours.length > 0" class="booking-footer">
-                <div class="summary-content">
-                    <div class="summary-details">
-                        <div class="summary-court">{{ currentCourt?.name }}</div>
-                        <div class="summary-time">
-                            {{ format(selectedDate, 'd MMM yyyy') }} | {{ timeRangeString }}
+            <!-- 3. เลือกเวลา -->
+            <section class="time-selector">
+                <div class="section-header">
+                    <h3>เลือกเวลา</h3>
+                    <span class="price-hint" v-if="!isLoading">*ราคาต่อชั่วโมง</span>
+                </div>
+
+                <div class="time-grid-wrapper">
+                    <transition name="fade">
+                        <div v-if="isLoading" class="loading-overlay">
+                            <div class="spinner"></div>
+                            <span>กำลังอัปเดตข้อมูล...</span>
                         </div>
-                        <div class="summary-count">{{ selectedHours.length }} ชั่วโมง</div>
-                    </div>
-                    <div class="summary-action">
-                        <div class="summary-total">
-                            <span class="total-label">รวมทั้งหมด</span>
-                            <span class="total-amount">฿{{ totalPrice.toLocaleString() }}</span>
-                        </div>
-                        <button class="confirm-btn" @click="proceedToBooking">จองเลย</button>
+                    </transition>
+
+                    <div class="time-grid" :class="{ 'content-loading': isLoading }">
+                        <button
+                            v-for="hour in timeSlots"
+                            :key="hour"
+                            class="time-slot"
+                            :class="{
+                                selected: selectedHours.includes(hour),
+                                booked: isBooked(hour),
+                                'my-booking': isMyBooking(hour)
+                            }"
+                            :disabled="isBooked(hour) || isLoading"
+                            @click="toggleHour(hour)"
+                        >
+                            <span class="time-text"
+                                >{{ formatTime(hour) }} - {{ formatTime(hour + 1) }}</span
+                            >
+                            <span v-if="isBooked(hour)" class="price-text booked-label">
+                                {{ getSlotStatusLabel(hour) || 'ไม่ว่าง' }}
+                            </span>
+                            <span v-else class="price-text"
+                                >฿{{ getPrice(hour).toLocaleString() }}</span
+                            >
+                        </button>
                     </div>
                 </div>
-            </footer>
-        </transition>
+            </section>
+
+            <!-- 4. สรุปการจอง -->
+            <transition name="slide-up">
+                <footer v-if="selectedHours.length > 0" class="booking-footer">
+                    <div class="summary-content">
+                        <div class="summary-details">
+                            <div class="summary-court">{{ currentCourt?.name }}</div>
+                            <div class="summary-time">
+                                {{ format(selectedDate, 'd MMM yyyy') }} | {{ timeRangeString }}
+                            </div>
+                            <div class="summary-count">{{ selectedHours.length }} ชั่วโมง</div>
+                        </div>
+                        <div class="summary-action">
+                            <div class="summary-total">
+                                <span class="total-label">รวมทั้งหมด</span>
+                                <span class="total-amount"
+                                    >฿{{ totalPrice.toLocaleString() }}</span
+                                >
+                            </div>
+                            <button class="confirm-btn" @click="proceedToBooking">จองเลย</button>
+                        </div>
+                    </div>
+                </footer>
+            </transition>
+        </template>
+
+        <!-- แสดงเมื่อยังไม่มีวันเปิดให้บริการ -->
+        <div v-else class="empty-booking-state">
+            <div class="empty-icon">🎾</div>
+            <h3>ขออภัยครับ ยังไม่เปิดให้บริการจอง</h3>
+            <p>กรุณากลับมาตรวจสอบอีกครั้งในภายหลังครับ</p>
+        </div>
     </div>
 </template>
 
 <script>
-import { format, addDays, isSameDay, startOfDay } from 'date-fns'
+import { format, addDays, isSameDay, startOfDay, parseISO } from 'date-fns'
 import { mapState } from 'pinia'
 import { useConfigStore } from '../stores/config'
+import { useLiffStore } from '../stores/liff'
 import { db } from '../firebase'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 
@@ -114,14 +132,18 @@ export default {
             selectedDate: startOfDay(new Date()),
             selectedCourtId: 1,
             selectedHours: [],
-            bookedHours: [],
-            slotMetadata: {}, // Store metadata like status and price for each hour
             isLoadingBookings: false,
             isLoadingSlots: false,
             unsubscribe: null,
             slotsUnsubscribe: null,
             format,
-            isSameDay
+            isSameDay,
+            currentTime: new Date(),
+            refreshTimer: null,
+            allBookings: [],
+            allSlots: [],
+            activeDates: [], // Days that admin has generated slots for
+            datesUnsubscribe: null
         }
     },
     computed: {
@@ -131,15 +153,33 @@ export default {
             'defaultPricing',
             'bookingAdvanceDays'
         ]),
+        ...mapState(useLiffStore, ['profile']),
         isLoading() {
             return this.isLoadingBookings || this.isLoadingSlots
+        },
+        currentCourtSlots() {
+            return this.allSlots.filter(s => Number(s.courtId) === Number(this.selectedCourtId))
+        },
+        currentCourtBookings() {
+            return this.allBookings.filter(b => Number(b.courtId) === Number(this.selectedCourtId))
+        },
+        currentCourtBookedHours() {
+            const hours = []
+            this.currentCourtBookings.forEach(b => {
+                if (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b))) {
+                    hours.push(...b.hours)
+                }
+            })
+            return hours
         },
         currentCourt() {
             return this.courts.find((c) => c.id === Number(this.selectedCourtId))
         },
         availableDates() {
-            const days = this.bookingAdvanceDays || 30
-            return Array.from({ length: days }, (_, i) => addDays(new Date(), i))
+            // Sort by date string and convert to Date objects
+            return [...this.activeDates]
+                .sort((a, b) => a.date.localeCompare(b.date))
+                .map((d) => parseISO(d.date))
         },
         timeSlots() {
             const slots = []
@@ -173,10 +213,26 @@ export default {
         formatTime(h) {
             return `${String(h).padStart(2, '0')}:00`
         },
+        isPast(hour) {
+            const now = this.currentTime
+            const selectedDate = startOfDay(this.selectedDate)
+            const today = startOfDay(now)
+
+            // 1. If selected date is in the past
+            if (selectedDate < today) return true
+
+            // 2. If selected date is today, check if hour is passed
+            if (isSameDay(selectedDate, today)) {
+                return hour <= now.getHours()
+            }
+
+            return false
+        },
         getPrice(hour) {
             // Check if there's a price from slot metadata first
-            if (this.slotMetadata[hour] && this.slotMetadata[hour].price !== undefined) {
-                return this.slotMetadata[hour].price
+            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
+            if (slot && slot.price !== undefined) {
+                return slot.price
             }
 
             if (!this.currentCourt) return 0
@@ -188,6 +244,11 @@ export default {
             const defaultRule = this.defaultPricing.find((p) => hour >= p.start && hour < p.end)
             return defaultRule ? defaultRule.rate : 0
         },
+        isBookingExpired(booking) {
+            if (booking.status !== 'pending' || !booking.createdAt) return false
+            const diffInSeconds = (new Date() - booking.createdAt.toDate()) / 1000
+            return diffInSeconds > 60
+        },
         async fetchAvailability() {
             // Clean up existing listeners
             if (this.unsubscribe) this.unsubscribe()
@@ -196,41 +257,53 @@ export default {
             this.isLoadingBookings = true
             this.isLoadingSlots = true
             const dateStr = format(this.selectedDate, 'yyyy-MM-dd')
-            const courtId = Number(this.selectedCourtId)
 
-            // 1. Fetch from 'bookings' (real bookings)
+            // 1. Fetch ALL bookings for the date
             const bQuery = query(
                 collection(db, 'bookings'),
                 where('tenantId', '==', 'court_001'),
                 where('date', '==', dateStr),
-                where('courtId', '==', courtId),
-                where('status', '==', 'paid')
+                where('status', 'in', ['paid', 'pending'])
             )
             this.unsubscribe = onSnapshot(bQuery, (snapshot) => {
-                let booked = []
-                snapshot.forEach((doc) => {
-                    const data = doc.data()
-                    if (data.hours) booked = [...booked, ...data.hours]
-                })
-                this.bookedHours = booked
+                this.allBookings = snapshot.docs.map(doc => doc.data())
                 this.isLoadingBookings = false
             })
 
-            // 2. Fetch from 'slots' (admin status management)
+            // 2. Fetch ALL slots for the date
             const sQuery = query(
                 collection(db, 'slots'),
                 where('tenantId', '==', 'court_001'),
-                where('date', '==', dateStr),
-                where('courtId', '==', courtId)
+                where('date', '==', dateStr)
             )
             this.slotsUnsubscribe = onSnapshot(sQuery, (snapshot) => {
-                const metadata = {}
-                snapshot.forEach((doc) => {
-                    const data = doc.data()
-                    metadata[data.hour] = data
-                })
-                this.slotMetadata = metadata
+                this.allSlots = snapshot.docs.map(doc => doc.data())
                 this.isLoadingSlots = false
+            })
+        },
+        async fetchActiveDays() {
+            if (this.datesUnsubscribe) this.datesUnsubscribe()
+
+            const todayStr = format(new Date(), 'yyyy-MM-dd')
+            const q = query(
+                collection(db, 'active_days'),
+                where('tenantId', '==', 'court_001'),
+                where('date', '>=', todayStr)
+            )
+
+            this.datesUnsubscribe = onSnapshot(q, (snapshot) => {
+                this.activeDates = snapshot.docs.map((doc) => doc.data())
+
+                // Auto-select the first available date if nothing is selected or current selection is invalid
+                if (this.activeDates.length > 0) {
+                    const availableDateStrings = this.activeDates.map((d) => d.date)
+                    const currentSelectedStr = format(this.selectedDate, 'yyyy-MM-dd')
+
+                    if (!availableDateStrings.includes(currentSelectedStr)) {
+                        const firstDate = parseISO(availableDateStrings.sort()[0])
+                        this.selectedDate = firstDate
+                    }
+                }
             })
         },
         selectDate(date) {
@@ -251,29 +324,86 @@ export default {
             }
         },
         isBooked(hour) {
-            // Hour is booked if:
-            // 1. It's in the 'bookings' collection
-            if (this.bookedHours.includes(hour)) return true
+            // 0. Hour is in the past
+            if (this.isPast(hour)) return true
 
-            // 2. Its status in 'slots' is NOT 'available' (if metadata exists)
-            if (this.slotMetadata[hour]) {
-                const status = this.slotMetadata[hour].status
-                return status !== 'available'
+            // 1. Check if ANY booking exists for this hour and current court
+            const isBookedViaBooking = this.currentCourtBookings.some(b => 
+                b.hours.includes(hour) && 
+                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+            )
+            if (isBookedViaBooking) return true
+
+            // 2. Check admin status in 'slots'
+            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
+            if (slot) {
+                return slot.status !== 'available'
             }
 
-            // 3. Fallback: if no slot data exists, we assume it's NOT available
-            // if the admin has started managing slots.
-            // But for now, let's assume it IS available if no metadata exists
-            // Or maybe treat as pending?
             return false
         },
+        isCourtFull(courtId) {
+            // A court is full if NO future slots have 'available' status
+            const courtSlots = this.allSlots.filter(s => Number(s.courtId) === Number(courtId))
+            
+            // If no slots are generated yet for this court on this date, we don't count it as 'full' 
+            // but rather as 'not open' (or just show it as empty). 
+            // Based on user: "slot ที่ยังไม่สร้าง ... จะยังไม่นับ"
+            if (courtSlots.length === 0) return false
+
+            const hasAnyAvailable = courtSlots.some(s => {
+                const hour = Number(s.hour)
+                if (this.isPast(hour)) return false
+                if (s.status !== 'available') return false
+                
+                // Also check if this available slot is currently being booked
+                const isBeingBooked = this.allBookings.some(b => 
+                    Number(b.courtId) === Number(courtId) && 
+                    b.hours.includes(hour) && 
+                    (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+                )
+                return !isBeingBooked
+            })
+
+            return !hasAnyAvailable
+        },
+        isMyBooking(hour) {
+            if (!this.profile?.userId) return false
+            const myBooking = this.currentCourtBookings.find(b => 
+                b.userId === this.profile.userId && 
+                b.hours.includes(hour) &&
+                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+            )
+            return !!myBooking
+        },
         getSlotStatusLabel(hour) {
-            if (this.bookedHours.includes(hour)) return 'เต็มแล้ว'
-            if (this.slotMetadata[hour]) {
-                const status = this.slotMetadata[hour].status
-                if (status === 'closed') return 'ปิดสนาม'
-                if (status === 'locked') return 'ไม่ว่าง'
-                if (status === 'pending') return 'ยังไม่เปิด'
+            if (this.isPast(hour)) return 'หมดเวลา'
+
+            // Check if it's my booking
+            const myBooking = this.currentCourtBookings.find(b => 
+                b.userId === this.profile.userId && 
+                b.hours.includes(hour) &&
+                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+            )
+            if (myBooking) {
+                return myBooking.status === 'pending' ? 'รอชำระเงิน' : 'จองแล้ว'
+            }
+
+            // Check shared bookings
+            const otherBooking = this.currentCourtBookings.find(b => 
+                b.hours.includes(hour) &&
+                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+            )
+            if (otherBooking) {
+                return otherBooking.status === 'paid' ? 'เต็มแล้ว' : 'รอชำระเงิน'
+            }
+
+            // Admin metadata
+            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
+            if (slot) {
+                if (slot.status === 'closed') return 'ปิดสนาม'
+                if (slot.status === 'locked') return 'ไม่ว่าง'
+                if (slot.status === 'pending') return 'ยังไม่เปิด'
             }
             return null
         },
@@ -288,9 +418,18 @@ export default {
             })
         }
     },
+    mounted() {
+        this.fetchActiveDays()
+        // Update current time every minute to refresh "past" slots automatically
+        this.refreshTimer = setInterval(() => {
+            this.currentTime = new Date()
+        }, 60000)
+    },
     beforeUnmount() {
         if (this.unsubscribe) this.unsubscribe()
         if (this.slotsUnsubscribe) this.slotsUnsubscribe()
+        if (this.datesUnsubscribe) this.datesUnsubscribe()
+        if (this.refreshTimer) clearInterval(this.refreshTimer)
     }
 }
 </script>
@@ -358,6 +497,7 @@ section {
     display: flex;
     gap: 10px;
     overflow-x: auto;
+    padding-top: 8px;
     padding-bottom: 8px;
 }
 .court-item {
@@ -368,11 +508,32 @@ section {
     background: white;
     text-align: center;
     cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
 }
 .court-item.active {
     background: #333;
     color: white;
     border-color: #333;
+}
+.court-item.is-full {
+    background: #fdf2f2;
+    border-color: #fee2e2;
+}
+.court-item.is-full.active {
+    background: #333; /* Keep active color but show badge */
+}
+.court-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 .court-name {
     font-weight: bold;
@@ -519,6 +680,19 @@ section {
     border-radius: 20px;
     font-size: 0.75rem;
 }
+
+/* My Booking Styles */
+.time-slot.my-booking {
+    background: #f0f7ff;
+    border-color: #007aff44;
+}
+.time-slot.my-booking .time-text {
+    color: #0056b3;
+}
+.time-slot.my-booking .booked-label {
+    background: #e1effe !important;
+    color: #1a56db !important;
+}
 .booking-footer {
     position: fixed;
     bottom: 0;
@@ -594,5 +768,27 @@ section {
 .slide-up-enter-from,
 .slide-up-leave-to {
     transform: translateY(100%);
+}
+
+/* Empty Booking State */
+.empty-booking-state {
+    padding: 60px 20px;
+    text-align: center;
+    background: white;
+    border-radius: 24px;
+    margin-top: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+.empty-icon {
+    font-size: 3rem;
+    margin-bottom: 20px;
+}
+.empty-booking-state h3 {
+    margin-bottom: 8px;
+    color: #333;
+}
+.empty-booking-state p {
+    color: #888;
+    font-size: 0.9rem;
 }
 </style>

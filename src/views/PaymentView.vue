@@ -20,11 +20,20 @@
                         />
                     </div>
 
-                    <div class="qr-image-box" v-if="qrImage">
+                    <div class="qr-image-box" v-if="qrImage && bookingStatus === 'pending'">
+                        <div class="timer-display" :class="{ 'timer-low': timeLeft < 20 }">
+                            <span class="timer-label">สแกนจ่ายภายใน:</span>
+                            <span class="timer-value">{{ formattedTime }}</span>
+                        </div>
                         <img :src="qrImage" alt="QR Code" class="qr-img" />
                     </div>
+                    <div v-else-if="bookingStatus === 'expired'" class="expired-box animate-fade">
+                        <div class="expired-icon">⏳</div>
+                        <h3>หมดเวลาชำระเงิน</h3>
+                        <p>กรุณากลับไปเลือกเวลาใหม่อีกครั้งครับ</p>
+                    </div>
                     <div v-else class="error-box">
-                        <p>ไม่สามารถโหลด QR Code ได้ กรุณาลองใหม่</p>
+                        <p v-if="!qrImage">ไม่สามารถโหลด QR Code ได้ กรุณาลองใหม่</p>
                     </div>
 
                     <div class="payment-amount">
@@ -41,31 +50,28 @@
                     </div>
                 </div>
 
-                <button
-                    v-if="bookingStatus === 'pending'"
-                    class="check-status-btn"
-                    @click="manualCheckStatus"
-                >
-                    ฉันชำระเงินเรียบร้อยแล้ว
-                </button>
+                <p v-if="bookingStatus === 'pending'" class="pending-hint">
+                    ระบบกำลังรอรับยอดเงิน...
+                </p>
             </div>
         </main>
 
         <footer class="payment-footer">
-            <button
-                class="cancel-btn"
-                @click="$router.push('/')"
-                v-if="bookingStatus === 'pending'"
-            >
-                ยกเลิกรายการและกลับหน้าแรก
-            </button>
+                <button
+                    class="cancel-btn"
+                    @click="$router.push('/')"
+                    v-if="bookingStatus === 'pending' || bookingStatus === 'expired'"
+                >
+                    {{ bookingStatus === 'expired' ? 'กลับหน้าแรก' : 'ยกเลิกรายการและกลับหน้าแรก' }}
+                </button>
         </footer>
     </div>
 </template>
 
 <script>
-import { db } from '../firebase'
-import { doc, onSnapshot, getDoc } from 'firebase/firestore'
+import { db, functions } from '../firebase'
+import { doc, onSnapshot } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
 
 export default {
     data() {
@@ -75,24 +81,53 @@ export default {
             amount: 0,
             bookingStatus: 'pending',
             loading: true,
-            unsubscribe: null
+            unsubscribe: null,
+            timeLeft: 60,
+            timerInterval: null
         }
     },
     computed: {
+        formattedTime() {
+            const mins = Math.floor(this.timeLeft / 60)
+            const secs = this.timeLeft % 60
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+        },
         statusText() {
             if (this.bookingStatus === 'paid') return 'ชำระเงินสำเร็จ!'
             if (this.bookingStatus === 'failed') return 'การชำระเงินไม่สำเร็จ'
+            if (this.bookingStatus === 'expired') return 'หมดเวลาชำระเงิน'
             return 'รอการชำระเงิน...'
         },
         statusClass() {
             return {
                 'status-paid': this.bookingStatus === 'paid',
                 'status-failed': this.bookingStatus === 'failed',
+                'status-expired': this.bookingStatus === 'expired',
                 'status-pending': this.bookingStatus === 'pending'
             }
         }
     },
     methods: {
+        startTimer(createdAt) {
+            if (this.timerInterval) clearInterval(this.timerInterval)
+
+            const updateTimer = () => {
+                const now = new Date()
+                const diff = Math.floor((now - createdAt) / 1000)
+                this.timeLeft = Math.max(0, 60 - diff)
+
+                if (this.timeLeft <= 0) {
+                    clearInterval(this.timerInterval)
+                    // Wait 3 seconds before checking status to ensure Omise has finalized its state
+                    setTimeout(() => {
+                        this.executeCheckStatus()
+                    }, 3000)
+                }
+            }
+
+            updateTimer()
+            this.timerInterval = setInterval(updateTimer, 1000)
+        },
         listenToBookingStatus() {
             if (!this.bookingId) return
             const docRef = doc(db, 'bookings', this.bookingId)
@@ -100,6 +135,11 @@ export default {
                 if (docSnap.exists()) {
                     const data = docSnap.data()
                     this.bookingStatus = data.status
+
+                    // Start timer based on createdAt from DB
+                    if (data.createdAt && !this.timerInterval) {
+                        this.startTimer(data.createdAt.toDate())
+                    }
 
                     if (this.bookingStatus === 'paid') {
                         setTimeout(() => this.$router.push({ name: 'success' }), 1500)
@@ -109,19 +149,12 @@ export default {
                 }
             })
         },
-        async manualCheckStatus() {
-            const docRef = doc(db, 'bookings', this.bookingId)
-            const docSnap = await getDoc(docRef)
-            if (docSnap.exists()) {
-                const data = docSnap.data()
-                this.bookingStatus = data.status
-                if (this.bookingStatus === 'paid') {
-                    this.$router.push({ name: 'success' })
-                } else if (this.bookingStatus === 'failed') {
-                    this.$router.push({ name: 'fail' })
-                } else {
-                    alert('ระบบยังไม่ได้รับยอดเงิน กรุณารอสักครู่ครับ')
-                }
+        async executeCheckStatus() {
+            try {
+                const checkBookingStatus = httpsCallable(functions, 'checkBookingStatus')
+                await checkBookingStatus({ bookingId: this.bookingId })
+            } catch (error) {
+                console.error('Error calling checkBookingStatus:', error)
             }
         }
     },
@@ -138,6 +171,7 @@ export default {
     },
     beforeUnmount() {
         if (this.unsubscribe) this.unsubscribe()
+        if (this.timerInterval) clearInterval(this.timerInterval)
     }
 }
 </script>
@@ -231,6 +265,10 @@ export default {
     background: #fff7e6;
     color: #faad14;
 }
+.status-expired {
+    background: #f5f5f5;
+    color: #999;
+}
 .status-paid {
     background: #f6ffed;
     color: #00b900;
@@ -238,6 +276,58 @@ export default {
 .status-failed {
     background: #fff1f0;
     color: #f5222d;
+}
+.timer-display {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #fdf2f2;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid #fee2e2;
+}
+.timer-low {
+    background: #fee2e2;
+    animation: pulse 1s infinite;
+}
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+.timer-label {
+    font-size: 0.75rem;
+    color: #ef4444;
+    font-weight: 600;
+}
+.timer-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #b91c1c;
+    font-family: monospace;
+}
+.expired-box {
+    padding: 40px 20px;
+    text-align: center;
+}
+.expired-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+}
+.expired-box h3 {
+    color: #333;
+    margin-bottom: 8px;
+}
+.expired-box p {
+    color: #666;
+    font-size: 0.9rem;
 }
 .check-status-btn {
     width: 100%;

@@ -95,13 +95,14 @@
 </template>
 
 <script>
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, isSameDay, startOfDay } from 'date-fns'
 import { th } from 'date-fns/locale'
 import { mapState } from 'pinia'
 import { useConfigStore } from '../stores/config'
 import { useLiffStore } from '../stores/liff'
-import { functions } from '../firebase'
+import { db, functions } from '../firebase'
 import { httpsCallable } from 'firebase/functions'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 
 export default {
     data() {
@@ -163,7 +164,63 @@ export default {
             this.phone = this.phone.replace(/\D/g, '')
         },
         async startPaymentFlow() {
+            // Check if any of the selected hours have already passed
+            const now = new Date()
+            const selectedDate = startOfDay(parseISO(this.date))
+            const today = startOfDay(now)
+
+            const isAnyPast =
+                selectedDate < today ||
+                (isSameDay(selectedDate, today) && this.hoursArray.some((h) => h <= now.getHours()))
+
+            if (isAnyPast) {
+                alert('ขออภัยครับ มีบางช่วงเวลาที่เลือกหมดเวลาจองไปแล้ว กรุณาเลือกเวลาใหม่อีกครั้ง')
+                this.$router.push('/')
+                return
+            }
+
             this.isSubmitting = true
+
+            // Check if slots are already taken by others (including pending < 1 min)
+            try {
+                const bQuery = query(
+                    collection(db, 'bookings'),
+                    where('tenantId', '==', 'court_001'),
+                    where('date', '==', this.date),
+                    where('courtId', '==', Number(this.courtId)),
+                    where('status', 'in', ['paid', 'pending'])
+                )
+                const snapshot = await getDocs(bQuery)
+                const currentTime = new Date()
+                let isTaken = false
+
+                snapshot.forEach((doc) => {
+                    const data = doc.data()
+                    // Check if it's really taken (either paid or pending that hasn't expired)
+                    const isPaid = data.status === 'paid'
+                    const isStillPending =
+                        data.status === 'pending' &&
+                        data.createdAt &&
+                        (currentTime - data.createdAt.toDate()) / 1000 < 60
+
+                    if (isPaid || isStillPending) {
+                        if (data.hours.some((h) => this.hoursArray.includes(h))) {
+                            isTaken = true
+                        }
+                    }
+                })
+
+                if (isTaken) {
+                    alert(
+                        'ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง'
+                    )
+                    this.isSubmitting = false
+                    this.$router.push('/')
+                    return
+                }
+            } catch (err) {
+                console.error('Error checking availability:', err)
+            }
             const publicKey = import.meta.env.VITE_OMISE_PUBLIC_KEY
             if (!publicKey || publicKey === 'pkey_test_xxxxxxxxxxxxxx') {
                 alert('กรุณาตั้งค่า OMISE_PUBLIC_KEY ใน .env ให้ถูกต้องก่อนครับ')
@@ -221,7 +278,7 @@ export default {
                 const createCharge = httpsCallable(functions, 'createCharge')
                 const result = await createCharge({
                     amount: this.totalPrice * 100,
-                    courtId: this.courtId,
+                    courtId: Number(this.courtId),
                     date: this.date,
                     hours: this.hours,
                     phone: this.phone,

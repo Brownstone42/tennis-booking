@@ -2,15 +2,20 @@
     <div
         v-if="slot"
         class="slot-item"
-        :class="[slot.status, { selected: isSelected }]"
+        :class="[slot.status, { selected: isSelected, 'paid-booking': isPaidBooking, 'pending-booking': isPendingBooking }]"
         @click="handleClick"
     >
+        <div class="booking-info" v-if="slot.booking">
+            <div class="customer-name">{{ slot.booking.displayName }}</div>
+            <div class="customer-phone">{{ slot.booking.phone }}</div>
+        </div>
+        <div class="slot-status-dot" v-if="!slot.booking"></div>
+        <div class="slot-price" v-if="!slot.booking">฿{{ slot.price }}</div>
+        <div class="slot-status-text">{{ slot.booking ? 'BOOKED' : statusLabel }}</div>
+
         <div class="selection-indicator" v-if="isSelected">
             <span class="check-icon">✓</span>
         </div>
-        <div class="slot-status-dot"></div>
-        <div class="slot-price">฿{{ slot.price }}</div>
-        <div class="slot-status-text">{{ statusLabel }}</div>
     </div>
     <div v-else class="slot-empty">ไม่มีข้อมูล</div>
 </template>
@@ -18,6 +23,7 @@
 <script>
 export default {
     props: ['slot', 'isSelectionMode', 'isSelected'],
+    emits: ['update', 'toggle-selection'],
     computed: {
         statusLabel() {
             if (!this.slot) return ''
@@ -29,10 +35,20 @@ export default {
                 booked: 'Booked'
             }
             return labels[this.slot.status] || this.slot.status
+        },
+        isPaidBooking() {
+            return this.slot?.booking?.status === 'paid'
+        },
+        isPendingBooking() {
+            return this.slot?.booking?.status === 'pending'
         }
     },
     methods: {
         handleClick() {
+            if (this.isPaidBooking) {
+                // Do nothing for paid bookings to lock them
+                return
+            }
             if (this.isSelectionMode) {
                 this.$emit('toggle-selection', this.slot.id)
             } else {
@@ -40,7 +56,7 @@ export default {
             }
         },
         toggleStatus() {
-            if (!this.slot || this.slot.status === 'booked') return
+            if (!this.slot || this.slot.status === 'booked' || this.isPaidBooking) return
 
             const states = ['pending', 'available', 'closed', 'locked']
             const currentIndex = states.indexOf(this.slot.status)
@@ -53,13 +69,15 @@ export default {
 
 <style scoped>
 .slot-item {
-    height: 100%;
+    height: 40px;
     border-radius: 6px;
-    padding: 6px;
+    padding: 8px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
     transition: all 0.2s;
     position: relative;
     overflow: hidden;
@@ -79,23 +97,24 @@ export default {
 }
 .selection-indicator {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: 4px;
+    right: 4px;
     background: #1890ff;
     color: white;
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: bold;
     z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 .slot-status-dot {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     background: #ccc;
     margin-bottom: 4px;
@@ -105,8 +124,9 @@ export default {
     font-weight: bold;
 }
 .slot-status-text {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     text-transform: uppercase;
+    font-weight: bold;
     opacity: 0.8;
 }
 
@@ -150,6 +170,34 @@ export default {
 }
 .booked .slot-status-dot {
     background: #1890ff;
+}
+
+/* Booking Overlay Styles */
+.booking-info {
+    font-size: 0.65rem;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+.customer-name {
+    color: inherit;
+}
+.customer-phone {
+    opacity: 0.6;
+    font-size: 0.6rem;
+}
+
+.paid-booking {
+    background-color: #e6f7ff !important;
+    color: #1890ff !important;
+    border-color: #91d5ff !important;
+    cursor: not-allowed !important;
+}
+.pending-booking {
+    background-color: #fff7e6 !important;
+    color: #faad14 !important;
+    border-color: #ffd591 !important;
+    border-style: dashed !important;
 }
 .slot-empty {
     height: 100%;

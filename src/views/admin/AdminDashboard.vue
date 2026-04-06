@@ -62,7 +62,11 @@
                                     <td>
                                         <span :class="['status-tag', booking.status]">
                                             {{
-                                                booking.status === 'paid' ? 'สำเร็จ' : 'รอดำเนินการ'
+                                                booking.status === 'paid'
+                                                    ? 'สำเร็จ'
+                                                    : booking.status === 'expired'
+                                                      ? 'หมดเวลา'
+                                                      : 'รอดำเนินการ'
                                             }}
                                         </span>
                                     </td>
@@ -247,6 +251,11 @@ td {
 .status-tag.pending {
     background: #fff7e6;
     color: #faad14;
+}
+.status-tag.expired {
+    background: #f5f5f5;
+    color: #999;
+    border: 1px solid #e1e1e1;
 }
 .btn-icon {
     background: none;
