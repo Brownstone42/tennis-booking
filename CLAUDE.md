@@ -31,7 +31,7 @@ Vue 3 SPA + Firebase backend for a Thai tennis court booking system. Delivered a
 
 **User flow**: LINE login (via LIFF) → browse court slots → select hours → Omise payment → booking confirmed.
 
-**Frontend** (`src/`): Vue 3 + Pinia + Vue Router + Vite. Path alias `@/` resolves to `./src/`. No TypeScript.
+**Frontend** (`src/`): Vue 3 + Pinia + Vue Router + Vite + **Tailwind CSS v4**. Path alias `@/` resolves to `./src/`. No TypeScript.
 
 **Backend** (`functions/index.js`): Three Firebase Cloud Functions:
 - `createCharge` — creates an Omise charge (credit card or PromptPay QR), writes a `pending` booking to Firestore
@@ -58,6 +58,24 @@ Stored in `.env` (Vite reads these as `import.meta.env.VITE_*` at build time):
 - `VITE_OMISE_PUBLIC_KEY` — Omise public key (safe to expose client-side)
 
 Omise secret key is stored as a Firebase Cloud Function secret (not in `.env`).
+
+## Styling — Tailwind CSS v4
+
+**Setup**: `@tailwindcss/vite` plugin in `vite.config.js`. Global entry point is `src/style.css` (imported in `main.js`).
+
+**Custom theme tokens** (defined in `src/style.css` `@theme {}` block, usable as `bg-line-green`, `text-ant-blue`, etc.):
+- `--color-line-green`: `#00b900` — LINE brand green, primary CTA color
+- `--color-ant-blue`: `#1890ff` — Ant Design blue, admin UI accent
+- `--color-ant-navy`: `#001529` — dark sidebar background
+- `--color-promptpay`: `#003764` — PromptPay brand blue
+- Slot status colors: `slot-available-*`, `slot-booked-*`, `slot-closed-*`, `slot-locked-*` (bg/border/text variants)
+
+**Scoped styles with `@apply`**: Any `<style scoped>` block that uses `@apply` must start with `@reference "../../style.css"` (adjust path relative to the Vue file). Without it, Tailwind v4 won't resolve utility classes inside `@apply`. This is a v4 requirement — not needed in v3.
+
+**Patterns**:
+- Complex conditional class logic (e.g., slot status colors, booking state) lives in computed methods returning class strings, not inline `:class` bindings.
+- Pseudo-elements (`::before`, `::after`) and custom toggle switches stay in scoped `<style>` using `@apply`. Everything else is inline Tailwind utilities.
+- Global animations (`.animate-fade`, `.animate-slide-up`) are defined as `@layer utilities` in `src/style.css`.
 
 ## Code Style
 
