@@ -1,0 +1,27 @@
+{
+  "eval_id": 1,
+  "eval_name": "regression-introduced",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Runs npm run build",
+      "passed": false,
+      "evidence": "Did not run npm run build. No build command executed anywhere in the report. Did static analysis only."
+    },
+    {
+      "text": "Runs all five targeted regression checks (tenant ID, isBookingExpired, 60s expiry, client amount)",
+      "passed": false,
+      "evidence": "Did not run the four targeted regression checks. Instead performed a general code review. Never grepped for 'court_001', 'this.isBookingExpired', '60', or 'request.data.amount'. Found other valid issues but not the codebase-specific regressions the skill targets."
+    },
+    {
+      "text": "Produces a summary table or equivalent structured output",
+      "passed": false,
+      "evidence": "Produced a narrative report with priority-tagged sections, not a structured PASS/FAIL table. The pre-deploy checklist at the bottom is a checkbox list, not a summary of check results."
+    },
+    {
+      "text": "Output is direct — no lengthy preamble or explanation before the results",
+      "passed": false,
+      "evidence": "Output starts with 'The codebase is functionally solid. The payment flow... are well-implemented.' before presenting findings. Extensive general commentary throughout."
+    }
+  ]
+}

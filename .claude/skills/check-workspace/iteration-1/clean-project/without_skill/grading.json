@@ -1,0 +1,42 @@
+{
+  "eval_id": 0,
+  "eval_name": "clean-project",
+  "config": "without_skill",
+  "expectations": [
+    {
+      "text": "Runs npm run build and reports its result",
+      "passed": false,
+      "evidence": "Agent explicitly stated 'Shell command execution was sandboxed during this check. No npm run build was executed' — build was skipped entirely."
+    },
+    {
+      "text": "Searches for hardcoded 'court_001' outside constants.js and reports result",
+      "passed": false,
+      "evidence": "No grep for 'court_001' was run. Static analysis covered the file but didn't explicitly check for this specific regression."
+    },
+    {
+      "text": "Searches for this.isBookingExpired and reports result",
+      "passed": true,
+      "evidence": "Found and reported the bug: 'AdminSchedule.vue line 301 calls this.isBookingExpired(b)... throws TypeError'. Discovered via code reading, not targeted grep."
+    },
+    {
+      "text": "Checks for 60-second booking expiry literals and reports result",
+      "passed": false,
+      "evidence": "Not checked. No mention of 60-second literal scanning in the report."
+    },
+    {
+      "text": "Checks functions/index.js for client-supplied amount usage and reports result",
+      "passed": true,
+      "evidence": "Report states 'Server-side price calculation is correct — the client-supplied amount is ignored; the server recalculates from Firestore settings.'"
+    },
+    {
+      "text": "Produces a clear PASS/FAIL summary table covering all checks",
+      "passed": false,
+      "evidence": "Produced an action items table by priority, but not a PASS/FAIL summary table. Format is a general code review, not targeted check results."
+    },
+    {
+      "text": "All checks pass on the current clean codebase (no regressions present)",
+      "passed": false,
+      "evidence": "Codebase had a real regression at eval time (this.isBookingExpired in AdminSchedule.vue:301). Agent correctly found it. Note: this regression has since been fixed."
+    }
+  ]
+}

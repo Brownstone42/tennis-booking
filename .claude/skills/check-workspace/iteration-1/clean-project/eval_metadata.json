@@ -1,0 +1,35 @@
+{
+  "eval_id": 0,
+  "eval_name": "clean-project",
+  "prompt": "run check",
+  "assertions": [
+    {
+      "id": "runs_build",
+      "text": "Runs npm run build and reports its result"
+    },
+    {
+      "id": "checks_tenant_id",
+      "text": "Searches for hardcoded 'court_001' outside constants.js and reports result"
+    },
+    {
+      "id": "checks_isBookingExpired",
+      "text": "Searches for this.isBookingExpired and reports result"
+    },
+    {
+      "id": "checks_60s_expiry",
+      "text": "Checks for 60-second booking expiry literals and reports result"
+    },
+    {
+      "id": "checks_client_amount",
+      "text": "Checks functions/index.js for client-supplied amount usage and reports result"
+    },
+    {
+      "id": "summary_table",
+      "text": "Produces a clear PASS/FAIL summary table covering all checks"
+    },
+    {
+      "id": "all_pass",
+      "text": "All checks pass on the current clean codebase (no regressions present)"
+    }
+  ]
+}

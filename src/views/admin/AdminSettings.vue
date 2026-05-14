@@ -165,6 +165,7 @@ import { mapState, mapActions } from 'pinia'
 import { useConfigStore } from '../../stores/config'
 import { auth } from '../../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import { TENANT_ID } from '../../constants'
 
 export default {
     components: { AdminSidebar },
@@ -245,7 +246,7 @@ export default {
                     courts: this.localConfig.courts,
                     defaultPricing: this.localConfig.defaultPricing
                 }
-                await this.saveConfig('court_001', dataToSave)
+                await this.saveConfig(TENANT_ID, dataToSave)
                 alert('บันทึกการตั้งค่าสำเร็จ!')
             } catch (error) {
                 alert('เกิดข้อผิดพลาด: ' + error.message)

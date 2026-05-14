@@ -103,6 +103,8 @@ import { useLiffStore } from '../stores/liff'
 import { db, functions } from '../firebase'
 import { httpsCallable } from 'firebase/functions'
 import { collection, query, where, getDocs } from 'firebase/firestore'
+import { TENANT_ID } from '../constants'
+import { PENDING_EXPIRY_SECONDS, getPriceForHour } from '../utils/booking'
 
 export default {
     data() {
@@ -151,24 +153,35 @@ export default {
             return format(parseISO(dateStr), 'd MMM yyyy', { locale: th })
         },
         getPrice(hour) {
-            if (!this.currentCourt) return 0
-            const cp = this.currentCourt.pricing
-            if (cp && cp.length > 0) {
-                const rule = cp.find((p) => hour >= p.start && hour < p.end)
-                if (rule) return rule.rate
-            }
-            const dr = this.defaultPricing.find((p) => hour >= p.start && hour < p.end)
-            return dr ? dr.rate : 0
+            return getPriceForHour(hour, this.currentCourt, this.defaultPricing)
         },
         validatePhone() {
             this.phone = this.phone.replace(/\D/g, '')
         },
+        async checkSlotAvailability() {
+            const bQuery = query(
+                collection(db, 'bookings'),
+                where('tenantId', '==', TENANT_ID),
+                where('date', '==', this.date),
+                where('courtId', '==', Number(this.courtId)),
+                where('status', 'in', ['paid', 'pending'])
+            )
+            const snapshot = await getDocs(bQuery)
+            const now = new Date()
+            return !snapshot.docs.some((doc) => {
+                const data = doc.data()
+                const isActive =
+                    data.status === 'paid' ||
+                    (data.status === 'pending' &&
+                        data.createdAt &&
+                        (now - data.createdAt.toDate()) / 1000 < PENDING_EXPIRY_SECONDS)
+                return isActive && data.hours.some((h) => this.hoursArray.includes(h))
+            })
+        },
         async startPaymentFlow() {
-            // Check if any of the selected hours have already passed
             const now = new Date()
             const selectedDate = startOfDay(parseISO(this.date))
             const today = startOfDay(now)
-
             const isAnyPast =
                 selectedDate < today ||
                 (isSameDay(selectedDate, today) && this.hoursArray.some((h) => h <= now.getHours()))
@@ -181,36 +194,9 @@ export default {
 
             this.isSubmitting = true
 
-            // Check if slots are already taken by others (including pending < 1 min)
             try {
-                const bQuery = query(
-                    collection(db, 'bookings'),
-                    where('tenantId', '==', 'court_001'),
-                    where('date', '==', this.date),
-                    where('courtId', '==', Number(this.courtId)),
-                    where('status', 'in', ['paid', 'pending'])
-                )
-                const snapshot = await getDocs(bQuery)
-                const currentTime = new Date()
-                let isTaken = false
-
-                snapshot.forEach((doc) => {
-                    const data = doc.data()
-                    // Check if it's really taken (either paid or pending that hasn't expired)
-                    const isPaid = data.status === 'paid'
-                    const isStillPending =
-                        data.status === 'pending' &&
-                        data.createdAt &&
-                        (currentTime - data.createdAt.toDate()) / 1000 < 900
-
-                    if (isPaid || isStillPending) {
-                        if (data.hours.some((h) => this.hoursArray.includes(h))) {
-                            isTaken = true
-                        }
-                    }
-                })
-
-                if (isTaken) {
+                const isAvailable = await this.checkSlotAvailability()
+                if (!isAvailable) {
                     alert(
                         'ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง'
                     )
@@ -285,7 +271,7 @@ export default {
                     date: this.date,
                     hours: this.hours,
                     phone: this.phone,
-                    tenantId: 'court_001',
+                    tenantId: TENANT_ID,
                     userId: this.profile?.userId,
                     displayName: this.profile?.displayName,
                     ...paymentData

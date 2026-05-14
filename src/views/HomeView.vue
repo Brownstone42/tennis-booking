@@ -125,6 +125,8 @@ import { useConfigStore } from '../stores/config'
 import { useLiffStore } from '../stores/liff'
 import { db } from '../firebase'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { TENANT_ID } from '../constants'
+import { isBookingExpired, getPriceForHour } from '../utils/booking'
 
 export default {
     data() {
@@ -163,20 +165,61 @@ export default {
         currentCourtBookings() {
             return this.allBookings.filter(b => Number(b.courtId) === Number(this.selectedCourtId))
         },
-        currentCourtBookedHours() {
-            const hours = []
+        // Map<hour, slot> — O(1) price and status lookups replacing per-slot .find()
+        currentCourtSlotsMap() {
+            const map = new Map()
+            this.currentCourtSlots.forEach(s => map.set(Number(s.hour), s))
+            return map
+        },
+        // Set<hour> — O(1) booked-hour check replacing per-slot .some() scan
+        bookedHoursSet() {
+            const set = new Set()
             this.currentCourtBookings.forEach(b => {
-                if (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b))) {
-                    hours.push(...b.hours)
+                if (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b))) {
+                    b.hours.forEach(h => set.add(h))
                 }
             })
-            return hours
+            return set
+        },
+        // Set<hour> — O(1) my-booking check replacing per-slot .find()
+        myBookedHoursSet() {
+            const set = new Set()
+            if (!this.profile?.userId) return set
+            this.currentCourtBookings.forEach(b => {
+                if (b.userId === this.profile.userId &&
+                    (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b)))) {
+                    b.hours.forEach(h => set.add(h))
+                }
+            })
+            return set
+        },
+        // Map<courtId, bool> — computed once per snapshot, not per court button render
+        courtFullMap() {
+            const map = new Map()
+            const bookedHoursByCourtId = new Map()
+            this.allBookings.forEach(b => {
+                if (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b))) {
+                    const id = Number(b.courtId)
+                    if (!bookedHoursByCourtId.has(id)) bookedHoursByCourtId.set(id, new Set())
+                    b.hours.forEach(h => bookedHoursByCourtId.get(id).add(h))
+                }
+            })
+            for (const court of this.courts) {
+                const courtSlots = this.allSlots.filter(s => Number(s.courtId) === Number(court.id))
+                if (courtSlots.length === 0) { map.set(court.id, false); continue }
+                const booked = bookedHoursByCourtId.get(court.id) || new Set()
+                const hasAvailable = courtSlots.some(s => {
+                    const hour = Number(s.hour)
+                    return !this.isPast(hour) && s.status === 'available' && !booked.has(hour)
+                })
+                map.set(court.id, !hasAvailable)
+            }
+            return map
         },
         currentCourt() {
             return this.courts.find((c) => c.id === Number(this.selectedCourtId))
         },
         availableDates() {
-            // Sort by date string and convert to Date objects
             return [...this.activeDates]
                 .sort((a, b) => a.date.localeCompare(b.date))
                 .map((d) => parseISO(d.date))
@@ -190,10 +233,11 @@ export default {
             }
             return slots
         },
+        // selectedHours is always sorted (see toggleHour), so first/last element is min/max
         timeRangeString() {
             if (this.selectedHours.length === 0) return ''
-            const min = Math.min(...this.selectedHours)
-            const max = Math.max(...this.selectedHours) + 1
+            const min = this.selectedHours[0]
+            const max = this.selectedHours[this.selectedHours.length - 1] + 1
             return `${this.formatTime(min)} - ${this.formatTime(max)}`
         },
         totalPrice() {
@@ -205,8 +249,10 @@ export default {
             handler: 'fetchAvailability',
             immediate: true
         },
-        selectedCourtId: {
-            handler: 'fetchAvailability'
+        // Court change doesn't need new Firestore listeners — queries fetch all courts for the date.
+        // Just clear the hour selection.
+        selectedCourtId() {
+            this.selectedHours = []
         }
     },
     methods: {
@@ -229,25 +275,9 @@ export default {
             return false
         },
         getPrice(hour) {
-            // Check if there's a price from slot metadata first
-            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
-            if (slot && slot.price !== undefined) {
-                return slot.price
-            }
-
-            if (!this.currentCourt) return 0
-            const courtPricing = this.currentCourt.pricing
-            if (courtPricing && courtPricing.length > 0) {
-                const priceRule = courtPricing.find((p) => hour >= p.start && hour < p.end)
-                if (priceRule) return priceRule.rate
-            }
-            const defaultRule = this.defaultPricing.find((p) => hour >= p.start && hour < p.end)
-            return defaultRule ? defaultRule.rate : 0
-        },
-        isBookingExpired(booking) {
-            if (booking.status !== 'pending' || !booking.createdAt) return false
-            const diffInSeconds = (new Date() - booking.createdAt.toDate()) / 1000
-            return diffInSeconds > 900
+            const slot = this.currentCourtSlotsMap.get(hour)
+            if (slot && slot.price !== undefined) return slot.price
+            return getPriceForHour(hour, this.currentCourt, this.defaultPricing)
         },
         async fetchAvailability() {
             // Clean up existing listeners
@@ -261,7 +291,7 @@ export default {
             // 1. Fetch ALL bookings for the date
             const bQuery = query(
                 collection(db, 'bookings'),
-                where('tenantId', '==', 'court_001'),
+                where('tenantId', '==', TENANT_ID),
                 where('date', '==', dateStr),
                 where('status', 'in', ['paid', 'pending'])
             )
@@ -273,7 +303,7 @@ export default {
             // 2. Fetch ALL slots for the date
             const sQuery = query(
                 collection(db, 'slots'),
-                where('tenantId', '==', 'court_001'),
+                where('tenantId', '==', TENANT_ID),
                 where('date', '==', dateStr)
             )
             this.slotsUnsubscribe = onSnapshot(sQuery, (snapshot) => {
@@ -287,7 +317,7 @@ export default {
             const todayStr = format(new Date(), 'yyyy-MM-dd')
             const q = query(
                 collection(db, 'active_days'),
-                where('tenantId', '==', 'court_001'),
+                where('tenantId', '==', TENANT_ID),
                 where('date', '>=', todayStr)
             )
 
@@ -324,82 +354,40 @@ export default {
             }
         },
         isBooked(hour) {
-            // 0. Hour is in the past
             if (this.isPast(hour)) return true
-
-            // 1. Check if ANY booking exists for this hour and current court
-            const isBookedViaBooking = this.currentCourtBookings.some(b => 
-                b.hours.includes(hour) && 
-                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
-            )
-            if (isBookedViaBooking) return true
-
-            // 2. Check admin status in 'slots'
-            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
-            if (slot) {
-                return slot.status !== 'available'
-            }
-
-            return false
+            if (this.bookedHoursSet.has(hour)) return true
+            const slot = this.currentCourtSlotsMap.get(hour)
+            return slot ? slot.status !== 'available' : false
         },
         isCourtFull(courtId) {
-            // A court is full if NO future slots have 'available' status
-            const courtSlots = this.allSlots.filter(s => Number(s.courtId) === Number(courtId))
-            
-            // If no slots are generated yet for this court on this date, we don't count it as 'full' 
-            // but rather as 'not open' (or just show it as empty). 
-            // Based on user: "slot ที่ยังไม่สร้าง ... จะยังไม่นับ"
-            if (courtSlots.length === 0) return false
-
-            const hasAnyAvailable = courtSlots.some(s => {
-                const hour = Number(s.hour)
-                if (this.isPast(hour)) return false
-                if (s.status !== 'available') return false
-                
-                // Also check if this available slot is currently being booked
-                const isBeingBooked = this.allBookings.some(b => 
-                    Number(b.courtId) === Number(courtId) && 
-                    b.hours.includes(hour) && 
-                    (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
-                )
-                return !isBeingBooked
-            })
-
-            return !hasAnyAvailable
+            return this.courtFullMap.get(courtId) ?? false
         },
         isMyBooking(hour) {
-            if (!this.profile?.userId) return false
-            const myBooking = this.currentCourtBookings.find(b => 
-                b.userId === this.profile.userId && 
-                b.hours.includes(hour) &&
-                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
-            )
-            return !!myBooking
+            return this.myBookedHoursSet.has(hour)
         },
         getSlotStatusLabel(hour) {
             if (this.isPast(hour)) return 'หมดเวลา'
 
-            // Check if it's my booking
             const myBooking = this.currentCourtBookings.find(b =>
                 b.userId === this.profile?.userId &&
                 b.hours.includes(hour) &&
-                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+                (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b)))
             )
             if (myBooking) {
                 return myBooking.status === 'pending' ? 'รอชำระเงิน' : 'จองแล้ว'
             }
 
             // Check shared bookings
-            const otherBooking = this.currentCourtBookings.find(b => 
+            const otherBooking = this.currentCourtBookings.find(b =>
                 b.hours.includes(hour) &&
-                (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+                (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b)))
             )
             if (otherBooking) {
                 return otherBooking.status === 'paid' ? 'เต็มแล้ว' : 'รอชำระเงิน'
             }
 
             // Admin metadata
-            const slot = this.currentCourtSlots.find(s => Number(s.hour) === Number(hour))
+            const slot = this.currentCourtSlotsMap.get(hour)
             if (slot) {
                 if (slot.status === 'closed') return 'ปิดสนาม'
                 if (slot.status === 'locked') return 'ไม่ว่าง'

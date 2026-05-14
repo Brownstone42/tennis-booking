@@ -30,6 +30,7 @@
 import { mapActions, mapState } from 'pinia'
 import { useLiffStore } from './stores/liff'
 import { useConfigStore } from './stores/config'
+import { TENANT_ID } from './constants'
 
 export default {
     computed: {
@@ -55,8 +56,7 @@ export default {
             await this.initLiff(liffId)
         }
 
-        const tenantId = 'court_001'
-        await this.fetchConfig(tenantId)
+        await this.fetchConfig(TENANT_ID)
     }
 }
 </script>

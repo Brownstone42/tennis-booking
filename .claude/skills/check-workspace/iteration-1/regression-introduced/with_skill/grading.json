@@ -1,0 +1,27 @@
+{
+  "eval_id": 1,
+  "eval_name": "regression-introduced",
+  "config": "with_skill",
+  "expectations": [
+    {
+      "text": "Runs npm run build",
+      "passed": false,
+      "evidence": "Build was skipped — Bash/PowerShell tools denied in agent context. Agent noted this explicitly and told user to run it manually."
+    },
+    {
+      "text": "Runs all five targeted regression checks (tenant ID, isBookingExpired, 60s expiry, client amount)",
+      "passed": true,
+      "evidence": "All four static checks completed: Tenant ID (only in constants.js - PASS), isBookingExpired (zero matches - PASS), 60s expiry (PaymentView math and 15*60*1000 correctly identified as non-regressions - PASS), client amount (PASS). Build was the only skip."
+    },
+    {
+      "text": "Produces a summary table or equivalent structured output",
+      "passed": true,
+      "evidence": "Produced the exact table format specified in the skill with checkmark/skip symbols and PASS/SKIP labels. Clean and structured."
+    },
+    {
+      "text": "Output is direct — no lengthy preamble or explanation before the results",
+      "passed": true,
+      "evidence": "Output opens directly with the summary table, followed by per-check details. No preamble or waffling."
+    }
+  ]
+}

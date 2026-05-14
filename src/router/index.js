@@ -7,11 +7,11 @@ import PaymentView from '../views/PaymentView.vue'
 import SuccessView from '../views/SuccessView.vue'
 import FailView from '../views/FailView.vue'
 
-// Admin Views
-import AdminLogin from '../views/admin/AdminLogin.vue'
-import AdminDashboard from '../views/admin/AdminDashboard.vue'
-import AdminSettings from '../views/admin/AdminSettings.vue'
-import AdminSchedule from '../views/admin/AdminSchedule.vue'
+// Admin Views — lazy-loaded so they don't land in the initial LIFF bundle
+const AdminLogin = () => import('../views/admin/AdminLogin.vue')
+const AdminDashboard = () => import('../views/admin/AdminDashboard.vue')
+const AdminSettings = () => import('../views/admin/AdminSettings.vue')
+const AdminSchedule = () => import('../views/admin/AdminSchedule.vue')
 
 // Waits for Firebase Auth to resolve before deciding — avoids false redirects on page load.
 const requireAdminAuth = () =>

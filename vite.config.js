@@ -5,8 +5,8 @@ import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 
 // https://vite.dev/config/
-export default defineConfig({
-    plugins: [vue(), vueDevTools()],
+export default defineConfig(({ mode }) => ({
+    plugins: [vue(), ...(mode !== 'production' ? [vueDevTools()] : [])],
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -18,5 +18,16 @@ export default defineConfig({
         hmr: {
             protocol: 'wss'
         }
+    },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    'vendor-firebase': ['firebase/app', 'firebase/firestore', 'firebase/functions', 'firebase/auth'],
+                    'vendor-liff': ['@line/liff'],
+                    'vendor-misc': ['date-fns', 'pinia', 'vue-router'],
+                }
+            }
+        }
     }
-})
+}))

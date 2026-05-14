@@ -1,0 +1,23 @@
+{
+  "eval_id": 1,
+  "eval_name": "regression-introduced",
+  "prompt": "before I deploy, can you run a quick sanity check on the codebase?",
+  "assertions": [
+    {
+      "id": "runs_build",
+      "text": "Runs npm run build"
+    },
+    {
+      "id": "checks_all_five",
+      "text": "Runs all five targeted regression checks (tenant ID, isBookingExpired, 60s expiry, client amount)"
+    },
+    {
+      "id": "summary_table",
+      "text": "Produces a summary table or equivalent structured output"
+    },
+    {
+      "id": "concise_no_preamble",
+      "text": "Output is direct — no lengthy preamble or explanation before the results"
+    }
+  ]
+}

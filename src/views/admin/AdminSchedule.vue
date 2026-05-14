@@ -234,6 +234,8 @@ import SlotItem from '../../components/SlotItem.vue'
 import { mapState } from 'pinia'
 import { useConfigStore } from '../../stores/config'
 import { db } from '../../firebase'
+import { TENANT_ID } from '../../constants'
+import { isBookingExpired, getPriceForHour } from '../../utils/booking'
 import {
     collection,
     query,
@@ -296,7 +298,7 @@ export default {
                         b.date === s.date &&
                         Number(b.courtId) === Number(s.courtId) &&
                         b.hours.includes(Number(s.hour)) &&
-                        (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
+                        (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b)))
                 )
 
                 if (booking) {
@@ -317,23 +319,6 @@ export default {
             const key = `${date}_${courtId}_${hour}`
             return this.slotsMap.get(key)
         },
-        isBookingExpired(booking) {
-            if (booking.status !== 'pending') return false
-            if (!booking.createdAt) return false
-            const now = new Date()
-            const diffInSeconds = (now - booking.createdAt.toDate()) / 1000
-            return diffInSeconds > 60 // 1 minute timeout
-        },
-        getPriceForHour(court, hour) {
-            // Check court specific pricing first
-            if (court.pricing && court.pricing.length > 0) {
-                const rule = court.pricing.find((p) => hour >= p.start && hour < p.end)
-                if (rule) return rule.rate
-            }
-            // Fallback to default pricing
-            const defaultRule = this.defaultPricing.find((p) => hour >= p.start && hour < p.end)
-            return defaultRule ? defaultRule.rate : 0
-        },
         async handleGenerate() {
             this.isGenerating = true
             const batch = writeBatch(db)
@@ -352,7 +337,7 @@ export default {
                         activeDayRef,
                         {
                             date: dateStr,
-                            tenantId: 'court_001',
+                            tenantId: TENANT_ID,
                             updatedAt: new Date()
                         },
                         { merge: true }
@@ -375,8 +360,8 @@ export default {
                                     courtId: court.id,
                                     hour: hour,
                                     status: 'pending',
-                                    price: this.getPriceForHour(court, hour),
-                                    tenantId: 'court_001',
+                                    price: getPriceForHour(hour, court, this.defaultPricing),
+                                    tenantId: TENANT_ID,
                                     createdAt: new Date()
                                 },
                                 { merge: false }
@@ -416,14 +401,14 @@ export default {
             if (this.currentView === 'daily') {
                 q = query(
                     collection(db, 'slots'),
-                    where('tenantId', '==', 'court_001'),
+                    where('tenantId', '==', TENANT_ID),
                     where('date', '==', this.selectedDate)
                 )
             } else {
                 const weekDates = this.weekDays.map((d) => d.dateStr)
                 q = query(
                     collection(db, 'slots'),
-                    where('tenantId', '==', 'court_001'),
+                    where('tenantId', '==', TENANT_ID),
                     where('courtId', '==', Number(this.selectedCourtId)),
                     where('date', 'in', weekDates)
                 )
@@ -447,7 +432,7 @@ export default {
             if (this.currentView === 'daily') {
                 bq = query(
                     collection(db, 'bookings'),
-                    where('tenantId', '==', 'court_001'),
+                    where('tenantId', '==', TENANT_ID),
                     where('date', '==', this.selectedDate),
                     where('status', 'in', ['paid', 'pending'])
                 )
@@ -455,7 +440,7 @@ export default {
                 const weekDates = this.weekDays.map((d) => d.dateStr)
                 bq = query(
                     collection(db, 'bookings'),
-                    where('tenantId', '==', 'court_001'),
+                    where('tenantId', '==', TENANT_ID),
                     where('courtId', '==', Number(this.selectedCourtId)),
                     where('date', 'in', weekDates),
                     where('status', 'in', ['paid', 'pending'])

@@ -119,6 +119,7 @@ export default {
 
                 if (this.timeLeft <= 0) {
                     clearInterval(this.timerInterval)
+                    this.timerInterval = null
                     // Wait 3 seconds before checking status to ensure Omise has finalized its state
                     setTimeout(() => {
                         this.executeCheckStatus()
@@ -142,10 +143,10 @@ export default {
                         this.startTimer(data.createdAt.toDate())
                     }
 
-                    if (this.bookingStatus === 'paid') {
-                        setTimeout(() => this.$router.push({ name: 'success' }), 1500)
-                    } else if (this.bookingStatus === 'failed') {
-                        setTimeout(() => this.$router.push({ name: 'fail' }), 1500)
+                    if (this.bookingStatus === 'paid' || this.bookingStatus === 'failed') {
+                        if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null }
+                        const dest = this.bookingStatus === 'paid' ? 'success' : 'fail'
+                        setTimeout(() => this.$router.push({ name: dest }), 1500)
                     }
                 }
             })
