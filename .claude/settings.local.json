@@ -16,7 +16,8 @@
       "Bash(python3 -m scripts.aggregate_benchmark \"C:/Storage/Antigravity/appx/tennis-booking/.claude/skills/check-workspace/iteration-1\" --skill-name \"check\")",
       "Bash(nohup python3 C:/Users/anawa/.claude/plugins/cache/claude-plugins-official/skill-creator/unknown/skills/skill-creator/eval-viewer/generate_review.py C:/Storage/Antigravity/appx/tennis-booking/.claude/skills/check-workspace/iteration-1 --skill-name check --benchmark C:/Storage/Antigravity/appx/tennis-booking/.claude/skills/check-workspace/iteration-1/benchmark.json --static C:/Storage/Antigravity/appx/tennis-booking/.claude/skills/check-workspace/iteration-1/review.html)",
       "Read(//tmp/**)",
-      "Bash(start *)"
+      "Bash(start *)",
+      "Bash(npm install *)"
     ]
   },
   "enabledPlugins": {

@@ -1,22 +1,33 @@
 <template>
-    <aside class="sidebar">
-        <div class="sidebar-logo">
-            <img src="/favicon.ico" alt="Logo" />
+    <aside class="w-[260px] bg-ant-navy text-white flex flex-col sticky top-0 h-screen shrink-0">
+        <div class="px-6 py-6 flex items-center gap-3 text-xl font-bold border-b border-white/10">
+            <img src="/favicon.ico" alt="Logo" class="w-8" />
             <span>Tennis Admin</span>
         </div>
-        <nav class="sidebar-nav">
-            <router-link :to="{ name: 'admin-dashboard' }" active-class="active"
-                >📊 แดชบอร์ด</router-link
-            >
-            <router-link :to="{ name: 'admin-schedule' }" active-class="active"
-                >📅 จัดการตารางเวลา</router-link
-            >
-            <router-link :to="{ name: 'admin-settings' }" active-class="active"
-                >⚙️ ตั้งค่าสนาม</router-link
-            >
+        <nav class="flex-1 py-5">
+            <router-link
+                :to="{ name: 'admin-dashboard' }"
+                active-class="!bg-ant-blue !text-white"
+                class="block px-6 py-3.5 text-white/70 no-underline transition-all duration-200 hover:bg-ant-blue hover:text-white"
+            >📊 แดชบอร์ด</router-link>
+            <router-link
+                :to="{ name: 'admin-schedule' }"
+                active-class="!bg-ant-blue !text-white"
+                class="block px-6 py-3.5 text-white/70 no-underline transition-all duration-200 hover:bg-ant-blue hover:text-white"
+            >📅 จัดการตารางเวลา</router-link>
+            <router-link
+                :to="{ name: 'admin-settings' }"
+                active-class="!bg-ant-blue !text-white"
+                class="block px-6 py-3.5 text-white/70 no-underline transition-all duration-200 hover:bg-ant-blue hover:text-white"
+            >⚙️ ตั้งค่าสนาม</router-link>
         </nav>
-        <div class="sidebar-footer">
-            <button @click="logout">Log Out</button>
+        <div class="p-5 border-t border-white/10">
+            <button
+                class="w-full py-2.5 bg-white/10 border border-white/20 rounded-md text-white cursor-pointer transition-all duration-200 font-semibold hover:bg-white/20"
+                @click="logout"
+            >
+                Log Out
+            </button>
         </div>
     </aside>
 </template>
@@ -34,70 +45,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.sidebar {
-    width: 260px;
-    background: #001529;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-}
-
-.sidebar-logo {
-    padding: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-logo img {
-    width: 32px;
-}
-
-.sidebar-nav {
-    flex-grow: 1;
-    padding: 20px 0;
-}
-
-.sidebar-nav a {
-    display: block;
-    padding: 14px 24px;
-    color: rgba(255, 255, 255, 0.7);
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.sidebar-nav a:hover,
-.sidebar-nav a.active {
-    background: #1890ff;
-    color: white;
-}
-
-.sidebar-footer {
-    padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-footer button {
-    width: 100%;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.2s;
-    font-weight: 600;
-}
-
-.sidebar-footer button:hover {
-    background: rgba(255, 255, 255, 0.2);
-}
-</style>

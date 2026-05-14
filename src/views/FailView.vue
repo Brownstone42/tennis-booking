@@ -1,22 +1,32 @@
 <template>
-    <div class="fail-view animate-fade">
-        <main class="fail-content">
-            <div class="fail-icon">❌</div>
-            <h1>การชำระเงินไม่สำเร็จ</h1>
-            <p>{{ errorMessage || 'เกิดข้อผิดพลาดในการดำเนินการชำระเงิน กรุณาลองใหม่อีกครั้ง' }}</p>
+    <div class="animate-fade min-h-screen flex justify-center items-center bg-white p-5 text-center">
+        <main>
+            <div class="text-8xl mb-6">❌</div>
+            <h1 class="text-3xl font-bold mb-3 text-gray-800">การชำระเงินไม่สำเร็จ</h1>
+            <p class="text-gray-500 mb-8">
+                {{ errorMessage || 'เกิดข้อผิดพลาดในการดำเนินการชำระเงิน กรุณาลองใหม่อีกครั้ง' }}
+            </p>
 
-            <section class="error-card">
+            <section class="bg-[#fff1f0] border border-[#ffa39e] rounded-2xl p-6 mb-10 text-sm text-gray-600">
                 <p>
                     หากคุณถูกตัดเงินแล้วแต่สถานะไม่เปลี่ยน
                     กรุณาติดต่อเจ้าหน้าที่สนามพร้อมหลักฐานการโอนเงิน
                 </p>
             </section>
 
-            <div class="button-group">
-                <button class="retry-btn" @click="$router.push('/')">
+            <div class="flex flex-col gap-3">
+                <button
+                    class="bg-gray-800 text-white border-0 px-10 py-4 rounded-xl text-lg font-bold cursor-pointer"
+                    @click="$router.push('/')"
+                >
                     กลับหน้าหลักเพื่อลองใหม่
                 </button>
-                <button class="close-btn" @click="closeLiff">ปิดหน้าต่าง</button>
+                <button
+                    class="bg-transparent text-gray-400 border-0 py-2.5 text-sm underline cursor-pointer"
+                    @click="closeLiff"
+                >
+                    ปิดหน้าต่าง
+                </button>
             </div>
         </main>
     </div>
@@ -45,82 +55,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.fail-view {
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #fff;
-    padding: 20px;
-    text-align: center;
-}
-
-.fail-icon {
-    font-size: 5rem;
-    color: #ff4d4f;
-    margin-bottom: 24px;
-}
-
-h1 {
-    font-size: 1.8rem;
-    margin-bottom: 12px;
-    color: #333;
-}
-p {
-    color: #666;
-    margin-bottom: 30px;
-}
-
-.error-card {
-    background: #fff1f0;
-    padding: 24px;
-    border-radius: 20px;
-    margin-bottom: 40px;
-    border: 1px solid #ffa39e;
-    font-size: 0.9rem;
-}
-
-.button-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.retry-btn {
-    background: #333;
-    color: white;
-    border: none;
-    padding: 16px 40px;
-    border-radius: 12px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close-btn {
-    background: none;
-    color: #999;
-    border: none;
-    padding: 10px;
-    font-size: 0.9rem;
-    text-decoration: underline;
-    cursor: pointer;
-}
-
-.animate-fade {
-    animation: fadeIn 0.6s ease-out;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>

@@ -1,110 +1,81 @@
 <template>
-    <div class="admin-layout">
+    <div class="flex min-h-screen bg-[#f4f7f9]">
         <AdminSidebar />
 
-        <main class="main-body">
-            <header class="top-bar">
-                <h1>จัดการตารางเวลา (Schedule Management)</h1>
-                <div class="top-actions">
-                    <button class="btn-primary" @click="showGenerateModal = true">
-                        + สร้าง Slot
-                    </button>
-                </div>
+        <main class="flex-1">
+            <header class="bg-white px-8 py-6 flex justify-between items-center shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+                <h1 class="m-0 text-2xl font-bold text-gray-900">จัดการตารางเวลา (Schedule Management)</h1>
+                <button class="bg-ant-blue text-white border-0 px-6 py-2.5 rounded-lg cursor-pointer font-semibold" @click="showGenerateModal = true">
+                    + สร้าง Slot
+                </button>
             </header>
 
-            <div class="dashboard-content">
-                <!-- Navigation Tabs & Filters -->
-                <div class="schedule-filters">
-                    <div class="view-tabs">
+            <div class="p-6 pb-28">
+                <!-- Filters bar -->
+                <div class="flex justify-between items-center mb-6 bg-white px-6 py-4 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                    <div class="flex gap-2">
                         <button
-                            :class="{ active: currentView === 'daily' }"
+                            class="px-4 py-2 border rounded-md cursor-pointer font-medium transition-all duration-200"
+                            :class="currentView === 'daily' ? 'bg-ant-blue text-white border-ant-blue' : 'bg-white border-gray-200'"
                             @click="currentView = 'daily'"
-                        >
-                            ดูรายวัน (ทุกคอร์ท)
-                        </button>
+                        >ดูรายวัน (ทุกคอร์ท)</button>
                         <button
-                            :class="{ active: currentView === 'weekly' }"
+                            class="px-4 py-2 border rounded-md cursor-pointer font-medium transition-all duration-200"
+                            :class="currentView === 'weekly' ? 'bg-ant-blue text-white border-ant-blue' : 'bg-white border-gray-200'"
                             @click="currentView = 'weekly'"
-                        >
-                            ดูรายสัปดาห์ (1 คอร์ท)
-                        </button>
+                        >ดูรายสัปดาห์ (1 คอร์ท)</button>
                     </div>
 
-                    <div class="date-court-picker">
-                        <div class="selection-toggle">
-                            <label class="switch">
-                                <input
-                                    type="checkbox"
-                                    v-model="isSelectionMode"
-                                    @change="clearSelection"
-                                />
-                                <span class="slider round"></span>
+                    <div class="flex gap-3 items-center">
+                        <!-- Toggle switch -->
+                        <div class="flex items-center gap-3 mr-5">
+                            <label class="toggle-switch">
+                                <input type="checkbox" v-model="isSelectionMode" @change="clearSelection" class="sr-only" />
+                                <span class="toggle-track"></span>
                             </label>
-                            <span class="toggle-label">{{
-                                isSelectionMode
-                                    ? 'โหมดเลือกหลายรายการ ON'
-                                    : 'โหมดเลือกหลายรายการ OFF'
-                            }}</span>
+                            <span class="text-sm font-semibold text-gray-600">
+                                {{ isSelectionMode ? 'โหมดเลือกหลายรายการ ON' : 'โหมดเลือกหลายรายการ OFF' }}
+                            </span>
                         </div>
-                        <input type="date" v-model="selectedDate" class="form-input-sm" />
-                        <select
-                            v-if="currentView === 'weekly'"
-                            v-model="selectedCourtId"
-                            class="form-input-sm"
-                        >
-                            <option v-for="court in courts" :key="court.id" :value="court.id">
-                                {{ court.name }}
-                            </option>
+                        <input type="date" v-model="selectedDate" class="px-3 py-2 border border-gray-200 rounded-md" />
+                        <select v-if="currentView === 'weekly'" v-model="selectedCourtId" class="px-3 py-2 border border-gray-200 rounded-md">
+                            <option v-for="court in courts" :key="court.id" :value="court.id">{{ court.name }}</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Schedule Grid Display -->
-                <div class="schedule-grid-container">
-                    <div v-if="isLoading" class="loading-overlay">กำลังโหลดข้อมูล...</div>
+                <!-- Schedule grid -->
+                <div class="bg-white rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative">
+                    <div v-if="isLoading" class="absolute inset-0 bg-white/70 flex items-center justify-center z-10 font-bold">
+                        กำลังโหลดข้อมูล...
+                    </div>
 
-                    <!-- Daily View: Courts as columns, Hours as rows -->
-                    <table v-if="currentView === 'daily'" class="schedule-table">
+                    <!-- Daily view -->
+                    <table v-if="currentView === 'daily'" class="w-full border-collapse" style="table-layout: fixed">
                         <thead>
                             <tr>
-                                <th>เวลา</th>
-                                <th v-for="court in courts" :key="court.id">
-                                    <div class="header-with-action">
+                                <th class="bg-gray-50 px-3 py-3 text-center border-b-2 border-r border-gray-100 text-sm text-gray-500 w-[120px]">เวลา</th>
+                                <th v-for="court in courts" :key="court.id" class="bg-gray-50 px-3 py-3 text-center border-b-2 border-r border-gray-100 text-sm text-gray-500">
+                                    <div class="flex items-center justify-center gap-2">
                                         {{ court.name }}
-                                        <button
-                                            v-if="isSelectionMode"
-                                            class="btn-select-all"
-                                            @click="selectAllInCourt(court.id)"
-                                            title="เลือกทั้งคอร์ท"
-                                        >
-                                            <span class="icon">↓</span>
-                                        </button>
+                                        <button v-if="isSelectionMode" class="sel-all-btn" @click="selectAllInCourt(court.id)" title="เลือกทั้งคอร์ท">↓</button>
                                     </div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="hour in operatingHoursList" :key="hour">
-                                <td class="time-cell">
-                                    <div class="header-with-action">
-                                        <button
-                                            v-if="isSelectionMode"
-                                            class="btn-select-all horizontal"
-                                            @click="selectAllInRow(hour)"
-                                            title="เลือกทั้งแถว"
-                                        >
-                                            <span class="icon">→</span>
-                                        </button>
+                                <td class="w-[120px] text-center text-sm text-gray-400 bg-gray-50 border-b border-r border-gray-100 align-middle px-3 py-2">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button v-if="isSelectionMode" class="sel-all-btn" @click="selectAllInRow(hour)" title="เลือกทั้งแถว">→</button>
                                         {{ formatTime(hour) }}
                                     </div>
                                 </td>
-                                <td v-for="court in courts" :key="court.id" class="slot-cell">
+                                <td v-for="court in courts" :key="court.id" class="border-b border-r border-gray-100 p-1">
                                     <SlotItem
                                         :slot="getSlot(selectedDate, court.id, hour)"
                                         :isSelectionMode="isSelectionMode"
-                                        :isSelected="
-                                            isSelected(getSlot(selectedDate, court.id, hour)?.id)
-                                        "
+                                        :isSelected="isSelected(getSlot(selectedDate, court.id, hour)?.id)"
                                         @update="updateSlotStatus"
                                         @toggle-selection="toggleSelection"
                                     />
@@ -113,50 +84,34 @@
                         </tbody>
                     </table>
 
-                    <!-- Weekly View: Days as columns, Hours as rows -->
-                    <table v-else class="schedule-table">
+                    <!-- Weekly view -->
+                    <table v-else class="w-full border-collapse" style="table-layout: fixed">
                         <thead>
                             <tr>
-                                <th>เวลา</th>
-                                <th v-for="day in weekDays" :key="day.dateStr">
-                                    <div class="header-with-action">
-                                        {{ day.label }}<br /><small>{{ day.dateStr }}</small>
-                                        <button
-                                            v-if="isSelectionMode"
-                                            class="btn-select-all"
-                                            @click="selectAllInDay(day.dateStr)"
-                                            title="เลือกทั้งวัน"
-                                        >
-                                            <span class="icon">↓</span>
-                                        </button>
+                                <th class="bg-gray-50 px-3 py-3 text-center border-b-2 border-r border-gray-100 text-sm text-gray-500 w-[120px]">เวลา</th>
+                                <th v-for="day in weekDays" :key="day.dateStr" class="bg-gray-50 px-3 py-3 text-center border-b-2 border-r border-gray-100 text-sm text-gray-500">
+                                    <div class="flex flex-col items-center gap-1">
+                                        <div class="flex items-center gap-2">
+                                            {{ day.label }}<br /><small>{{ day.dateStr }}</small>
+                                            <button v-if="isSelectionMode" class="sel-all-btn" @click="selectAllInDay(day.dateStr)" title="เลือกทั้งวัน">↓</button>
+                                        </div>
                                     </div>
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-for="hour in operatingHoursList" :key="hour">
-                                <td class="time-cell">
-                                    <div class="header-with-action">
-                                        <button
-                                            v-if="isSelectionMode"
-                                            class="btn-select-all horizontal"
-                                            @click="selectAllInRow(hour)"
-                                            title="เลือกทั้งแถว"
-                                        >
-                                            <span class="icon">→</span>
-                                        </button>
+                                <td class="w-[120px] text-center text-sm text-gray-400 bg-gray-50 border-b border-r border-gray-100 align-middle px-3 py-2">
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button v-if="isSelectionMode" class="sel-all-btn" @click="selectAllInRow(hour)" title="เลือกทั้งแถว">→</button>
                                         {{ formatTime(hour) }}
                                     </div>
                                 </td>
-                                <td v-for="day in weekDays" :key="day.dateStr" class="slot-cell">
+                                <td v-for="day in weekDays" :key="day.dateStr" class="border-b border-r border-gray-100 p-1">
                                     <SlotItem
                                         :slot="getSlot(day.dateStr, selectedCourtId, hour)"
                                         :isSelectionMode="isSelectionMode"
-                                        :isSelected="
-                                            isSelected(
-                                                getSlot(day.dateStr, selectedCourtId, hour)?.id
-                                            )
-                                        "
+                                        :isSelected="isSelected(getSlot(day.dateStr, selectedCourtId, hour)?.id)"
                                         @update="updateSlotStatus"
                                         @toggle-selection="toggleSelection"
                                     />
@@ -168,59 +123,40 @@
             </div>
 
             <!-- Generate Modal -->
-            <div v-if="showGenerateModal" class="modal-overlay">
-                <!-- ... existing modal content ... -->
-                <div class="modal-content">
-                    <h3>สร้าง Slot อัตโนมัติ</h3>
-                    <div class="form-group">
-                        <label>ตั้งแต่วันที่</label>
-                        <input type="date" v-model="genStart" class="form-input" />
+            <div v-if="showGenerateModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]">
+                <div class="bg-white p-8 rounded-2xl w-[400px] shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+                    <h3 class="mt-0 mb-6 text-lg font-bold">สร้าง Slot อัตโนมัติ</h3>
+                    <div class="mb-5">
+                        <label class="block mb-2 font-medium">ตั้งแต่วันที่</label>
+                        <input type="date" v-model="genStart" class="w-full px-3 py-3 border border-gray-200 rounded-lg" />
                     </div>
-                    <div class="form-group">
-                        <label>ถึงวันที่</label>
-                        <input type="date" v-model="genEnd" class="form-input" />
+                    <div class="mb-5">
+                        <label class="block mb-2 font-medium">ถึงวันที่</label>
+                        <input type="date" v-model="genEnd" class="w-full px-3 py-3 border border-gray-200 rounded-lg" />
                     </div>
-                    <p class="hint">
-                        * ระบบจะสร้าง Slot โดยใช้เวลาเปิด-ปิด และราคาที่ตั้งไว้ในหน้า Settings
-                        โดยให้สถานะเป็น 'pending'
+                    <p class="text-xs text-gray-400 mb-6 leading-relaxed">
+                        * ระบบจะสร้าง Slot โดยใช้เวลาเปิด-ปิด และราคาที่ตั้งไว้ในหน้า Settings โดยให้สถานะเป็น 'pending'
                     </p>
-                    <div class="modal-actions">
-                        <button class="btn-secondary" @click="showGenerateModal = false">
-                            ยกเลิก
-                        </button>
-                        <button
-                            class="btn-primary"
-                            :disabled="isGenerating"
-                            @click="handleGenerate"
-                        >
+                    <div class="flex justify-end gap-3">
+                        <button class="px-6 py-2.5 bg-gray-100 text-gray-700 border border-gray-200 rounded-lg cursor-pointer" @click="showGenerateModal = false">ยกเลิก</button>
+                        <button class="px-6 py-2.5 bg-ant-blue text-white border-0 rounded-lg cursor-pointer font-semibold disabled:opacity-50" :disabled="isGenerating" @click="handleGenerate">
                             {{ isGenerating ? 'กำลังสร้าง...' : 'ตกลง' }}
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- Status Action Bar -->
-            <div
-                v-if="isSelectionMode && selectedSlotIds.length > 0"
-                class="status-action-bar-container"
-            >
-                <div class="status-action-bar">
-                    <div class="selection-count">เลือกอยู่ {{ selectedSlotIds.length }} รายการ</div>
-                    <div class="action-buttons">
-                        <button class="btn-action available" @click="bulkUpdateStatus('available')">
-                            Available
-                        </button>
-                        <button class="btn-action closed" @click="bulkUpdateStatus('closed')">
-                            Closed
-                        </button>
-                        <button class="btn-action pending" @click="bulkUpdateStatus('pending')">
-                            Pending
-                        </button>
-                        <button class="btn-action locked" @click="bulkUpdateStatus('locked')">
-                            Locked
-                        </button>
-                        <div class="divider"></div>
-                        <button class="btn-action clear" @click="clearSelection">ยกเลิก</button>
+            <!-- Floating bulk action bar -->
+            <div v-if="isSelectionMode && selectedSlotIds.length > 0" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
+                <div class="bg-ant-navy text-white px-6 py-3 rounded-full flex items-center gap-6 shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+                    <div class="font-bold pr-5 border-r border-white/20">เลือกอยู่ {{ selectedSlotIds.length }} รายการ</div>
+                    <div class="flex items-center gap-2.5">
+                        <button class="px-4 py-1.5 rounded-full border-0 text-sm font-semibold cursor-pointer bg-[#52c41a] text-white hover:opacity-90 hover:scale-105 transition-all" @click="bulkUpdateStatus('available')">Available</button>
+                        <button class="px-4 py-1.5 rounded-full border-0 text-sm font-semibold cursor-pointer bg-[#ff4d4f] text-white hover:opacity-90 hover:scale-105 transition-all" @click="bulkUpdateStatus('closed')">Closed</button>
+                        <button class="px-4 py-1.5 rounded-full border-0 text-sm font-semibold cursor-pointer bg-gray-500 text-white hover:opacity-90 hover:scale-105 transition-all" @click="bulkUpdateStatus('pending')">Pending</button>
+                        <button class="px-4 py-1.5 rounded-full border-0 text-sm font-semibold cursor-pointer bg-[#faad14] text-white hover:opacity-90 hover:scale-105 transition-all" @click="bulkUpdateStatus('locked')">Locked</button>
+                        <div class="w-px h-5 bg-white/20 mx-1"></div>
+                        <button class="px-4 py-1.5 rounded-full border border-gray-500 text-sm font-semibold cursor-pointer bg-transparent text-gray-300 hover:opacity-90 transition-all" @click="clearSelection">ยกเลิก</button>
                     </div>
                 </div>
             </div>
@@ -236,17 +172,8 @@ import { useConfigStore } from '../../stores/config'
 import { db } from '../../firebase'
 import { TENANT_ID } from '../../constants'
 import { isBookingExpired, getPriceForHour } from '../../utils/booking'
-import {
-    collection,
-    query,
-    where,
-    getDocs,
-    writeBatch,
-    doc,
-    updateDoc,
-    onSnapshot
-} from 'firebase/firestore'
-import { format, addDays, startOfWeek, endOfWeek, eachDayOfInterval, parseISO } from 'date-fns'
+import { collection, query, where, getDocs, writeBatch, doc, updateDoc, onSnapshot } from 'firebase/firestore'
+import { format, addDays, eachDayOfInterval, parseISO } from 'date-fns'
 
 export default {
     components: { AdminSidebar, SlotItem },
@@ -258,8 +185,8 @@ export default {
             showGenerateModal: false,
             isGenerating: false,
             isLoading: false,
-            slots: [], // Local cache of slots
-            bookings: [], // Local cache of bookings
+            slots: [],
+            bookings: [],
             unsubscribe: null,
             bookingsUnsubscribe: null,
             genStart: format(new Date(), 'yyyy-MM-dd'),
@@ -272,109 +199,57 @@ export default {
         ...mapState(useConfigStore, ['courts', 'operatingHours', 'defaultPricing']),
         operatingHoursList() {
             const list = []
-            for (let i = this.operatingHours.open; i < this.operatingHours.close; i++) {
-                list.push(i)
-            }
+            for (let i = this.operatingHours.open; i < this.operatingHours.close; i++) list.push(i)
             return list
         },
         weekDays() {
             const start = parseISO(this.selectedDate)
             const end = addDays(start, 6)
-            const days = eachDayOfInterval({ start, end })
-            return days.map((d) => ({
+            return eachDayOfInterval({ start, end }).map((d) => ({
                 dateStr: format(d, 'yyyy-MM-dd'),
                 label: format(d, 'EEE')
             }))
         },
         slotsMap() {
-            // Create a Map for O(1) lookup and better reactivity
             const map = new Map()
             this.slots.forEach((s) => {
                 const key = `${s.date}_${s.courtId}_${s.hour}`
-
-                // Check for overlapping bookings
                 const booking = this.bookings.find(
-                    (b) =>
-                        b.date === s.date &&
-                        Number(b.courtId) === Number(s.courtId) &&
+                    (b) => b.date === s.date && Number(b.courtId) === Number(s.courtId) &&
                         b.hours.includes(Number(s.hour)) &&
                         (b.status === 'paid' || (b.status === 'pending' && !isBookingExpired(b)))
                 )
-
-                if (booking) {
-                    map.set(key, { ...s, booking })
-                } else {
-                    map.set(key, s)
-                }
+                map.set(key, booking ? { ...s, booking } : s)
             })
             return map
         }
     },
     methods: {
-        formatTime(h) {
-            return `${String(h).padStart(2, '0')}:00`
-        },
-        getSlot(date, courtId, hour) {
-            // Use the map for lookup
-            const key = `${date}_${courtId}_${hour}`
-            return this.slotsMap.get(key)
-        },
+        formatTime(h) { return `${String(h).padStart(2, '0')}:00` },
+        getSlot(date, courtId, hour) { return this.slotsMap.get(`${date}_${courtId}_${hour}`) },
         async handleGenerate() {
             this.isGenerating = true
             const batch = writeBatch(db)
-            const startDate = parseISO(this.genStart)
-            const endDate = parseISO(this.genEnd)
-            const days = eachDayOfInterval({ start: startDate, end: endDate })
-
+            const days = eachDayOfInterval({ start: parseISO(this.genStart), end: parseISO(this.genEnd) })
             try {
                 this.isLoading = true
                 for (const day of days) {
                     const dateStr = format(day, 'yyyy-MM-dd')
-
-                    // Record this date as an active day for customers to see
-                    const activeDayRef = doc(db, 'active_days', dateStr)
-                    batch.set(
-                        activeDayRef,
-                        {
-                            date: dateStr,
-                            tenantId: TENANT_ID,
-                            updatedAt: new Date()
-                        },
-                        { merge: true }
-                    )
-
+                    batch.set(doc(db, 'active_days', dateStr), { date: dateStr, tenantId: TENANT_ID, updatedAt: new Date() }, { merge: true })
                     for (const court of this.courts) {
-                        for (
-                            let hour = this.operatingHours.open;
-                            hour < this.operatingHours.close;
-                            hour++
-                        ) {
+                        for (let hour = this.operatingHours.open; hour < this.operatingHours.close; hour++) {
                             const slotId = `${dateStr}_${court.id}_${hour}`
-                            const docRef = doc(db, 'slots', slotId)
-
-                            batch.set(
-                                docRef,
-                                {
-                                    id: slotId,
-                                    date: dateStr,
-                                    courtId: court.id,
-                                    hour: hour,
-                                    status: 'pending',
-                                    price: getPriceForHour(hour, court, this.defaultPricing),
-                                    tenantId: TENANT_ID,
-                                    createdAt: new Date()
-                                },
-                                { merge: false }
-                            ) // Overwrite if exists to reset
+                            batch.set(doc(db, 'slots', slotId), {
+                                id: slotId, date: dateStr, courtId: court.id, hour,
+                                status: 'pending', price: getPriceForHour(hour, court, this.defaultPricing),
+                                tenantId: TENANT_ID, createdAt: new Date()
+                            }, { merge: false })
                         }
                     }
                 }
                 await batch.commit()
                 this.showGenerateModal = false
-
-                // Manually trigger fetch to ensure UI is in sync
                 this.fetchSlots()
-
                 alert('Generate Slots สำเร็จ!')
             } catch (error) {
                 console.error(error)
@@ -386,8 +261,7 @@ export default {
         },
         async updateSlotStatus({ id, status }) {
             try {
-                const docRef = doc(db, 'slots', id)
-                await updateDoc(docRef, { status })
+                await updateDoc(doc(db, 'slots', id), { status })
             } catch (error) {
                 alert('ไม่สามารถอัปเดตสถานะได้')
             }
@@ -395,58 +269,27 @@ export default {
         fetchSlots() {
             if (this.unsubscribe) this.unsubscribe()
             this.isLoading = true
-            this.slots = [] // Clear existing slots to avoid stale view
-
+            this.slots = []
             let q
             if (this.currentView === 'daily') {
-                q = query(
-                    collection(db, 'slots'),
-                    where('tenantId', '==', TENANT_ID),
-                    where('date', '==', this.selectedDate)
-                )
+                q = query(collection(db, 'slots'), where('tenantId', '==', TENANT_ID), where('date', '==', this.selectedDate))
             } else {
-                const weekDates = this.weekDays.map((d) => d.dateStr)
-                q = query(
-                    collection(db, 'slots'),
-                    where('tenantId', '==', TENANT_ID),
-                    where('courtId', '==', Number(this.selectedCourtId)),
-                    where('date', 'in', weekDates)
-                )
+                q = query(collection(db, 'slots'), where('tenantId', '==', TENANT_ID), where('courtId', '==', Number(this.selectedCourtId)), where('date', 'in', this.weekDays.map((d) => d.dateStr)))
             }
-
-            this.unsubscribe = onSnapshot(
-                q,
-                (snapshot) => {
-                    this.slots = snapshot.docs.map((doc) => doc.data())
-                    this.isLoading = false
-                },
-                (error) => {
-                    console.error('Firestore error:', error)
-                    alert('Error loading slots: ' + error.message)
-                    this.isLoading = false
-                }
-            )
-
-            // Also fetch bookings
+            this.unsubscribe = onSnapshot(q, (snapshot) => {
+                this.slots = snapshot.docs.map((doc) => doc.data())
+                this.isLoading = false
+            }, (error) => {
+                console.error('Firestore error:', error)
+                alert('Error loading slots: ' + error.message)
+                this.isLoading = false
+            })
             let bq
             if (this.currentView === 'daily') {
-                bq = query(
-                    collection(db, 'bookings'),
-                    where('tenantId', '==', TENANT_ID),
-                    where('date', '==', this.selectedDate),
-                    where('status', 'in', ['paid', 'pending'])
-                )
+                bq = query(collection(db, 'bookings'), where('tenantId', '==', TENANT_ID), where('date', '==', this.selectedDate), where('status', 'in', ['paid', 'pending']))
             } else {
-                const weekDates = this.weekDays.map((d) => d.dateStr)
-                bq = query(
-                    collection(db, 'bookings'),
-                    where('tenantId', '==', TENANT_ID),
-                    where('courtId', '==', Number(this.selectedCourtId)),
-                    where('date', 'in', weekDates),
-                    where('status', 'in', ['paid', 'pending'])
-                )
+                bq = query(collection(db, 'bookings'), where('tenantId', '==', TENANT_ID), where('courtId', '==', Number(this.selectedCourtId)), where('date', 'in', this.weekDays.map((d) => d.dateStr)), where('status', 'in', ['paid', 'pending']))
             }
-
             if (this.bookingsUnsubscribe) this.bookingsUnsubscribe()
             this.bookingsUnsubscribe = onSnapshot(bq, (snapshot) => {
                 this.bookings = snapshot.docs.map((doc) => doc.data())
@@ -454,59 +297,28 @@ export default {
         },
         toggleSelection(slotId) {
             const index = this.selectedSlotIds.indexOf(slotId)
-            if (index > -1) {
-                this.selectedSlotIds.splice(index, 1)
-            } else {
-                this.selectedSlotIds.push(slotId)
-            }
+            if (index > -1) { this.selectedSlotIds.splice(index, 1) } else { this.selectedSlotIds.push(slotId) }
         },
-        isSelected(slotId) {
-            return this.selectedSlotIds.includes(slotId)
-        },
-        clearSelection() {
-            this.selectedSlotIds = []
-        },
+        isSelected(slotId) { return this.selectedSlotIds.includes(slotId) },
+        clearSelection() { this.selectedSlotIds = [] },
         selectAllInCourt(courtId) {
-            // Find all slots currently displayed for this court that ARE NOT booked
-            const courtSlots = Array.from(this.slotsMap.values())
-                .filter((s) => String(s.courtId) == String(courtId) && !s.booking)
-                .map((s) => s.id)
-            this.addManyToSelection(courtSlots)
+            this.addManyToSelection(Array.from(this.slotsMap.values()).filter((s) => String(s.courtId) == String(courtId) && !s.booking).map((s) => s.id))
         },
         selectAllInRow(hour) {
-            // Find all slots currently displayed for this hour that ARE NOT booked
-            const rowSlots = Array.from(this.slotsMap.values())
-                .filter((s) => Number(s.hour) == Number(hour) && !s.booking)
-                .map((s) => s.id)
-            this.addManyToSelection(rowSlots)
+            this.addManyToSelection(Array.from(this.slotsMap.values()).filter((s) => Number(s.hour) == Number(hour) && !s.booking).map((s) => s.id))
         },
         selectAllInDay(date) {
-            // Find all slots currently displayed for this date that ARE NOT booked
-            const daySlots = Array.from(this.slotsMap.values())
-                .filter((s) => s.date == date && !s.booking)
-                .map((s) => s.id)
-            this.addManyToSelection(daySlots)
+            this.addManyToSelection(Array.from(this.slotsMap.values()).filter((s) => s.date == date && !s.booking).map((s) => s.id))
         },
         addManyToSelection(ids) {
-            ids.forEach((id) => {
-                if (!this.selectedSlotIds.includes(id)) {
-                    this.selectedSlotIds.push(id)
-                }
-            })
+            ids.forEach((id) => { if (!this.selectedSlotIds.includes(id)) this.selectedSlotIds.push(id) })
         },
         async bulkUpdateStatus(status) {
             if (this.selectedSlotIds.length === 0) return
-
             this.isLoading = true
             const batch = writeBatch(db)
-
             try {
-                this.selectedSlotIds.forEach((id) => {
-                    // Note: id in our case is the docId which is "dateStr_courtId_hour"
-                    const docRef = doc(db, 'slots', id)
-                    batch.update(docRef, { status })
-                })
-
+                this.selectedSlotIds.forEach((id) => batch.update(doc(db, 'slots', id), { status }))
                 await batch.commit()
                 const count = this.selectedSlotIds.length
                 this.clearSelection()
@@ -526,16 +338,12 @@ export default {
         currentView: 'fetchSlots',
         courts: {
             handler(newCourts) {
-                if (newCourts.length > 0 && !this.selectedCourtId) {
-                    this.selectedCourtId = newCourts[0].id
-                }
+                if (newCourts.length > 0 && !this.selectedCourtId) this.selectedCourtId = newCourts[0].id
             },
             immediate: true
         }
     },
-    mounted() {
-        this.fetchSlots()
-    },
+    mounted() { this.fetchSlots() },
     beforeUnmount() {
         if (this.unsubscribe) this.unsubscribe()
         if (this.bookingsUnsubscribe) this.bookingsUnsubscribe()
@@ -544,336 +352,22 @@ export default {
 </script>
 
 <style scoped>
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-    background: #f4f7f9;
-}
-.main-body {
-    flex-grow: 1;
-}
-.top-bar {
-    background: white;
-    padding: 24px 32px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-.top-bar h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: #1a1a1a;
-}
-.dashboard-content {
-    padding: 24px;
-    padding-bottom: 100px;
-}
+@reference "../../style.css";
 
-.schedule-filters {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    background: white;
-    padding: 16px 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+/* Toggle switch */
+.toggle-switch { @apply relative inline-block w-11 h-[22px]; }
+.toggle-track {
+    @apply absolute inset-0 bg-gray-300 rounded-full cursor-pointer transition-all duration-300;
 }
-.view-tabs {
-    display: flex;
-    gap: 8px;
-}
-.view-tabs button {
-    padding: 8px 16px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 500;
-}
-.view-tabs button.active {
-    background: #1890ff;
-    color: white;
-    border-color: #1890ff;
-}
-
-.date-court-picker {
-    display: flex;
-    gap: 12px;
-}
-.form-input-sm {
-    padding: 8px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 6px;
-}
-
-.schedule-grid-container {
-    background: white;
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-    position: relative;
-}
-.loading-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
-    font-weight: bold;
-}
-
-.schedule-table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-.schedule-table th {
-    background: #fafafa;
-    padding: 12px;
-    text-align: center;
-    border-bottom: 2px solid #f0f0f0;
-    border-right: 1px solid #f0f0f0;
-    font-size: 0.9rem;
-    color: #555;
-}
-.schedule-table td {
-    border-bottom: 1px solid #f0f0f0;
-    border-right: 1px solid #f0f0f0;
-    vertical-align: top;
-}
-.time-cell {
-    width: 120px;
-    text-align: center;
-    font-size: 0.85rem;
-    color: #888;
-    background: #fafafa;
-    vertical-align: middle !important;
-}
-
-/* Slot Item Styling moved to SlotItem.vue */
-
-/* Modal Styling */
-.modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
-.modal-content {
-    background: white;
-    padding: 32px;
-    border-radius: 16px;
-    width: 400px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-}
-.modal-content h3 {
-    margin-top: 0;
-    margin-bottom: 24px;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-.form-input {
-    width: 100%;
-    padding: 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-}
-.hint {
-    font-size: 0.8rem;
-    color: #888;
-    margin-bottom: 24px;
-    line-height: 1.4;
-}
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-}
-
-.btn-primary {
-    background: #1890ff;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-.btn-secondary {
-    background: #f5f5f5;
-    color: #333;
-    border: 1px solid #d9d9d9;
-    padding: 10px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-}
-
-/* Injected Selection Styles */
-.selection-toggle {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-right: 20px;
-}
-.toggle-label {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #555;
-}
-
-/* Switch Toggle CSS */
-.switch {
-    position: relative;
-    display: inline-block;
-    width: 44px;
-    height: 22px;
-}
-.switch input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-}
-.slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #ccc;
-    transition: 0.4s;
-}
-.slider:before {
-    position: absolute;
+.toggle-track::before {
     content: '';
-    height: 16px;
-    width: 16px;
-    left: 3px;
-    bottom: 3px;
-    background-color: white;
-    transition: 0.4s;
+    @apply absolute w-4 h-4 bg-white rounded-full left-[3px] bottom-[3px] transition-all duration-300;
 }
-input:checked + .slider {
-    background-color: #1890ff;
-}
-input:checked + .slider:before {
-    transform: translateX(22px);
-}
-.slider.round {
-    border-radius: 22px;
-}
-.slider.round:before {
-    border-radius: 50%;
-}
+input:checked ~ .toggle-track { @apply bg-ant-blue; }
+input:checked ~ .toggle-track::before { @apply translate-x-[22px]; }
 
-/* Header with action */
-.header-with-action {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    position: relative;
-}
-.btn-select-all {
-    background: #f0f0f0;
-    border: 1px solid #d9d9d9;
-    border-radius: 4px;
-    padding: 2px 6px;
-    cursor: pointer;
-    font-size: 10px;
-    color: #666;
-    transition: all 0.2s;
-}
-.btn-select-all:hover {
-    background: #1890ff;
-    color: white;
-    border-color: #1890ff;
-}
-.btn-select-all.horizontal {
-    margin-right: 4px;
-}
-
-/* Status Action Bar */
-.status-action-bar-container {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-    width: auto;
-}
-.status-action-bar {
-    background: #001529;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-}
-.selection-count {
-    font-weight: bold;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-    padding-right: 20px;
-}
-.action-buttons {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-.btn-action {
-    padding: 6px 16px;
-    border-radius: 20px;
-    border: none;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.btn-action:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
-}
-
-.btn-action.available {
-    background: #52c41a;
-    color: white;
-}
-.btn-action.closed {
-    background: #ff4d4f;
-    color: white;
-}
-.btn-action.pending {
-    background: #8c8c8c;
-    color: white;
-}
-.btn-action.locked {
-    background: #faad14;
-    color: white;
-}
-.btn-action.clear {
-    background: transparent;
-    color: #aaa;
-    border: 1px solid #444;
-}
-.divider {
-    width: 1px;
-    height: 20px;
-    background: rgba(255, 255, 255, 0.2);
-    margin: 0 4px;
+/* Select-all mini button */
+.sel-all-btn {
+    @apply bg-gray-100 border border-gray-200 rounded px-1.5 py-0.5 cursor-pointer text-[10px] text-gray-500 transition-all duration-200 hover:bg-ant-blue hover:text-white hover:border-ant-blue;
 }
 </style>

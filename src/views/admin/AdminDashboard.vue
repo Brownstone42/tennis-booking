@@ -1,88 +1,71 @@
 <template>
-    <div class="admin-layout">
+    <div class="flex min-h-screen bg-[#f4f7f9]">
         <AdminSidebar />
 
-        <div class="main-body">
-            <header class="top-bar">
-                <div class="page-title">
-                    <h1>Dashboard</h1>
-                    <span class="date-today">{{ todayStr }}</span>
+        <div class="flex-1">
+            <header class="bg-white px-8 py-4 flex justify-between items-center shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+                <div>
+                    <h1 class="m-0 text-2xl font-bold text-gray-800">Dashboard</h1>
+                    <span class="text-sm text-gray-400">{{ todayStr }}</span>
                 </div>
-                <div class="admin-user">
-                    <span>{{ user?.email }}</span>
-                </div>
+                <div class="text-sm text-gray-600">{{ user?.email }}</div>
             </header>
 
-            <div class="dashboard-content">
-                <section class="stats-row">
-                    <div class="stat-card">
-                        <span class="stat-label">การจองวันนี้</span>
-                        <span class="stat-value">{{ todayBookingsCount }}</span>
+            <div class="p-8">
+                <!-- Stats -->
+                <section class="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex flex-col">
+                        <span class="text-gray-400 text-sm mb-2">การจองวันนี้</span>
+                        <span class="text-[1.8rem] font-extrabold text-gray-900">{{ todayBookingsCount }}</span>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-label">รายได้วันนี้</span>
-                        <span class="stat-value">฿{{ todayRevenue }}</span>
+                    <div class="bg-white p-6 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex flex-col">
+                        <span class="text-gray-400 text-sm mb-2">รายได้วันนี้</span>
+                        <span class="text-[1.8rem] font-extrabold text-gray-900">฿{{ todayRevenue }}</span>
                     </div>
-                    <div class="stat-card">
-                        <span class="stat-label">สนามที่ว่างตอนนี้</span>
-                        <span class="stat-value">3 / 4</span>
+                    <div class="bg-white p-6 rounded-xl shadow-[0_2px_10px_rgba(0,0,0,0.03)] flex flex-col">
+                        <span class="text-gray-400 text-sm mb-2">สนามที่ว่างตอนนี้</span>
+                        <span class="text-[1.8rem] font-extrabold text-gray-900">3 / 4</span>
                     </div>
                 </section>
 
-                <section class="data-section">
-                    <div class="section-header">
-                        <h2>รายการจองทั้งหมด</h2>
-                        <div class="table-actions">
-                            <button class="btn-primary">+ เพิ่มการจอง (Manual)</button>
-                        </div>
+                <!-- Bookings table -->
+                <section class="bg-white rounded-2xl p-6 shadow-[0_2px_10px_rgba(0,0,0,0.03)]">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="m-0 text-lg font-bold text-gray-800">รายการจองทั้งหมด</h2>
+                        <button class="bg-ant-blue text-white border-0 px-5 py-2.5 rounded-lg font-semibold cursor-pointer">
+                            + เพิ่มการจอง (Manual)
+                        </button>
                     </div>
 
-                    <div class="table-card">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>วันที่จอง</th>
-                                    <th>เวลา</th>
-                                    <th>สนาม</th>
-                                    <th>ชื่อลูกค้า</th>
-                                    <th>เบอร์โทร</th>
-                                    <th>ราคา</th>
-                                    <th>สถานะ</th>
-                                    <th>ดำเนินการ</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr v-for="booking in bookings" :key="booking.id">
-                                    <td>{{ booking.date }}</td>
-                                    <td>{{ booking.hours?.join(', ') }}:00</td>
-                                    <td>คอร์ท {{ booking.courtId }}</td>
-                                    <td>{{ booking.displayName }}</td>
-                                    <td>{{ booking.phone }}</td>
-                                    <td>฿{{ booking.amount }}</td>
-                                    <td>
-                                        <span :class="['status-tag', booking.status]">
-                                            {{
-                                                booking.status === 'paid'
-                                                    ? 'สำเร็จ'
-                                                    : booking.status === 'expired'
-                                                      ? 'หมดเวลา'
-                                                      : 'รอดำเนินการ'
-                                            }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <button class="btn-icon">👁️</button>
-                                        <button class="btn-icon">✏️</button>
-                                    </td>
-                                </tr>
-                                <tr v-if="bookings.length === 0">
-                                    <td colspan="8" class="empty-row">
-                                        ยังไม่มีข้อมูลการจองในระบบ
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr>
+                                <th class="text-left p-4 bg-gray-50 text-gray-500 text-sm border-b border-gray-100" v-for="h in ['วันที่จอง','เวลา','สนาม','ชื่อลูกค้า','เบอร์โทร','ราคา','สถานะ','ดำเนินการ']" :key="h">{{ h }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="booking in bookings" :key="booking.id">
+                                <td class="p-4 border-b border-gray-100 text-sm">{{ booking.date }}</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">{{ booking.hours?.join(', ') }}:00</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">คอร์ท {{ booking.courtId }}</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">{{ booking.displayName }}</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">{{ booking.phone }}</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">฿{{ booking.amount }}</td>
+                                <td class="p-4 border-b border-gray-100 text-sm">
+                                    <span :class="statusTagClass(booking.status)">
+                                        {{ booking.status === 'paid' ? 'สำเร็จ' : booking.status === 'expired' ? 'หมดเวลา' : 'รอดำเนินการ' }}
+                                    </span>
+                                </td>
+                                <td class="p-4 border-b border-gray-100 text-sm">
+                                    <button class="bg-transparent border-0 cursor-pointer mr-2 text-base">👁️</button>
+                                    <button class="bg-transparent border-0 cursor-pointer text-base">✏️</button>
+                                </td>
+                            </tr>
+                            <tr v-if="bookings.length === 0">
+                                <td colspan="8" class="text-center py-16 text-gray-400">ยังไม่มีข้อมูลการจองในระบบ</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </section>
             </div>
         </div>
@@ -126,6 +109,12 @@ export default {
             this.unsubscribe = onSnapshot(q, (snapshot) => {
                 this.bookings = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
             })
+        },
+        statusTagClass(status) {
+            const base = 'px-2.5 py-1 rounded-md text-xs font-bold'
+            if (status === 'paid') return `${base} bg-[#f6ffed] text-[#52c41a]`
+            if (status === 'pending') return `${base} bg-[#fff7e6] text-[#faad14]`
+            return `${base} bg-gray-100 text-gray-400 border border-gray-200`
         }
     },
     created() {
@@ -143,130 +132,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.admin-layout {
-    display: flex;
-    min-height: 100vh;
-    background: #f4f7f9;
-}
-.main-body {
-    flex-grow: 1;
-}
-.top-bar {
-    background: white;
-    padding: 16px 32px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-}
-.page-title h1 {
-    margin: 0;
-    font-size: 1.4rem;
-    color: #333;
-}
-.date-today {
-    font-size: 0.85rem;
-    color: #999;
-}
-.dashboard-content {
-    padding: 32px;
-}
-
-.stats-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 24px;
-    margin-bottom: 32px;
-}
-.stat-card {
-    background: white;
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-    display: flex;
-    flex-direction: column;
-}
-.stat-label {
-    color: #888;
-    font-size: 0.9rem;
-    margin-bottom: 8px;
-}
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #1a1a1a;
-}
-
-.data-section {
-    background: white;
-    border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-}
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-}
-.btn-primary {
-    background: #1890ff;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-th {
-    text-align: left;
-    padding: 16px;
-    background: #fafafa;
-    color: #555;
-    font-size: 0.85rem;
-    border-bottom: 1px solid #f0f0f0;
-}
-td {
-    padding: 16px;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 0.9rem;
-}
-.status-tag {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    font-weight: bold;
-}
-.status-tag.paid {
-    background: #f6ffed;
-    color: #52c41a;
-}
-.status-tag.pending {
-    background: #fff7e6;
-    color: #faad14;
-}
-.status-tag.expired {
-    background: #f5f5f5;
-    color: #999;
-    border: 1px solid #e1e1e1;
-}
-.btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    margin-right: 8px;
-    font-size: 1rem;
-}
-.empty-row {
-    text-align: center;
-    padding: 60px !important;
-    color: #999;
-}
-</style>

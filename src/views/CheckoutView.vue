@@ -1,92 +1,85 @@
 <template>
-    <div class="checkout-container">
-        <header class="checkout-header">
-            <button class="back-btn" @click="$router.back()">←</button>
-            <h2>ชำระเงิน</h2>
+    <div class="min-h-screen bg-[#fcfcfc] pb-32">
+        <header class="bg-white px-4 py-4 flex items-center gap-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+            <button class="bg-transparent border-0 text-2xl cursor-pointer" @click="$router.back()">←</button>
+            <h2 class="m-0 text-xl font-semibold text-gray-800">ชำระเงิน</h2>
         </header>
 
         <main class="checkout-content">
-            <!-- 1. สรุปรายละเอียด -->
-            <section class="summary-mini">
-                <div class="summary-row">
+            <!-- Summary banner -->
+            <section class="bg-gray-800 text-white px-5 py-5 mx-4 mt-4 rounded-2xl">
+                <div class="flex justify-between items-center text-xl">
                     <strong>{{ currentCourt?.name }}</strong>
-                    <span class="total-price">฿{{ totalPrice.toLocaleString() }}</span>
+                    <span class="font-black text-line-green">฿{{ totalPrice.toLocaleString() }}</span>
                 </div>
-                <div class="summary-sub">{{ formatDate(date) }} | {{ timeString }}</div>
+                <div class="text-sm opacity-70 mt-1">{{ formatDate(date) }} | {{ timeString }}</div>
             </section>
 
-            <!-- 2. ข้อมูลผู้ติดต่อ -->
-            <section class="checkout-section">
-                <h3>เบอร์โทรศัพท์สำหรับติดต่อ</h3>
+            <!-- Phone -->
+            <section class="px-4 mt-6 mb-6">
+                <h3 class="text-base font-semibold text-gray-700 mb-3">เบอร์โทรศัพท์สำหรับติดต่อ</h3>
                 <input
                     type="tel"
                     v-model="phone"
                     placeholder="08X-XXX-XXXX"
                     maxlength="10"
-                    class="form-input"
+                    class="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-base bg-white box-border focus:border-ant-blue focus:outline-none"
                     @input="validatePhone"
                 />
             </section>
 
-            <!-- 3. เลือกช่องทางชำระเงิน -->
-            <section class="checkout-section">
-                <h3>เลือกช่องทางชำระเงิน</h3>
-                <div class="payment-methods">
+            <!-- Payment method -->
+            <section class="px-4 mb-6">
+                <h3 class="text-base font-semibold text-gray-700 mb-3">เลือกช่องทางชำระเงิน</h3>
+                <div class="grid grid-cols-2 gap-3">
                     <button
-                        class="method-item"
-                        :class="{ active: paymentMethod === 'promptpay' }"
+                        class="px-4 py-4 border-[1.5px] rounded-2xl bg-white flex flex-col items-center gap-2 cursor-pointer transition-all duration-200"
+                        :class="paymentMethod === 'promptpay' ? 'border-line-green bg-[#f6ffed] text-line-green' : 'border-gray-200'"
                         @click="paymentMethod = 'promptpay'"
                     >
-                        <div class="method-icon">QR</div>
-                        <span>PromptPay</span>
+                        <div class="text-2xl">QR</div>
+                        <span class="text-sm font-medium">PromptPay</span>
                     </button>
                     <button
-                        class="method-item"
-                        :class="{ active: paymentMethod === 'credit_card' }"
+                        class="px-4 py-4 border-[1.5px] rounded-2xl bg-white flex flex-col items-center gap-2 cursor-pointer transition-all duration-200"
+                        :class="paymentMethod === 'credit_card' ? 'border-line-green bg-[#f6ffed] text-line-green' : 'border-gray-200'"
                         @click="paymentMethod = 'credit_card'"
                     >
-                        <div class="method-icon">💳</div>
-                        <span>บัตรเครดิต</span>
+                        <div class="text-2xl">💳</div>
+                        <span class="text-sm font-medium">บัตรเครดิต</span>
                     </button>
                 </div>
             </section>
 
-            <!-- 4. แบบฟอร์มบัตรเครดิต -->
-            <section v-if="paymentMethod === 'credit_card'" class="card-form animate-fade">
-                <div class="form-group">
-                    <label>หมายเลขบัตร</label>
-                    <input
-                        type="text"
-                        v-model="card.number"
-                        placeholder="XXXX XXXX XXXX XXXX"
-                        class="form-input"
-                    />
+            <!-- Card form -->
+            <section v-if="paymentMethod === 'credit_card'" class="animate-fade px-4 flex flex-col gap-3">
+                <div>
+                    <label class="block text-xs text-gray-400 mb-1">หมายเลขบัตร</label>
+                    <input type="text" v-model="card.number" placeholder="XXXX XXXX XXXX XXXX"
+                        class="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-base bg-white box-border focus:border-ant-blue focus:outline-none" />
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>วันหมดอายุ (MM/YY)</label>
-                        <input
-                            type="text"
-                            v-model="card.expiry"
-                            placeholder="MM/YY"
-                            class="form-input"
-                        />
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">วันหมดอายุ (MM/YY)</label>
+                        <input type="text" v-model="card.expiry" placeholder="MM/YY"
+                            class="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-base bg-white box-border focus:border-ant-blue focus:outline-none" />
                     </div>
-                    <div class="form-group">
-                        <label>CVV</label>
-                        <input
-                            type="password"
-                            v-model="card.cvv"
-                            placeholder="XXX"
-                            class="form-input"
-                        />
+                    <div>
+                        <label class="block text-xs text-gray-400 mb-1">CVV</label>
+                        <input type="password" v-model="card.cvv" placeholder="XXX"
+                            class="w-full px-4 py-3.5 border border-gray-200 rounded-xl text-base bg-white box-border focus:border-ant-blue focus:outline-none" />
                     </div>
                 </div>
             </section>
         </main>
 
-        <footer class="checkout-footer">
-            <button class="pay-btn" :disabled="!isValid || isSubmitting" @click="startPaymentFlow">
+        <!-- Fixed footer -->
+        <footer class="fixed bottom-0 left-0 right-0 px-5 py-5 bg-white shadow-[0_-4px_12px_rgba(0,0,0,0.05)] max-w-[600px] mx-auto">
+            <button
+                class="w-full bg-line-green text-white border-0 py-[18px] rounded-2xl text-lg font-bold cursor-pointer disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed"
+                :disabled="!isValid || isSubmitting"
+                @click="startPaymentFlow"
+            >
                 <span v-if="isSubmitting">กำลังดำเนินการ...</span>
                 <span v-else>ยืนยันและชำระเงิน ฿{{ totalPrice.toLocaleString() }}</span>
             </button>
@@ -122,12 +115,7 @@ export default {
         ...mapState(useConfigStore, ['courts', 'defaultPricing']),
         ...mapState(useLiffStore, ['profile']),
         hoursArray() {
-            return this.hours
-                ? this.hours
-                      .split(',')
-                      .map(Number)
-                      .sort((a, b) => a - b)
-                : []
+            return this.hours ? this.hours.split(',').map(Number).sort((a, b) => a - b) : []
         },
         currentCourt() {
             return this.courts.find((c) => c.id === Number(this.courtId))
@@ -185,21 +173,16 @@ export default {
             const isAnyPast =
                 selectedDate < today ||
                 (isSameDay(selectedDate, today) && this.hoursArray.some((h) => h <= now.getHours()))
-
             if (isAnyPast) {
                 alert('ขออภัยครับ มีบางช่วงเวลาที่เลือกหมดเวลาจองไปแล้ว กรุณาเลือกเวลาใหม่อีกครั้ง')
                 this.$router.push('/')
                 return
             }
-
             this.isSubmitting = true
-
             try {
                 const isAvailable = await this.checkSlotAvailability()
                 if (!isAvailable) {
-                    alert(
-                        'ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง'
-                    )
+                    alert('ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง')
                     this.isSubmitting = false
                     this.$router.push('/')
                     return
@@ -216,45 +199,33 @@ export default {
                 return
             }
             window.Omise.setPublicKey(publicKey)
-
             try {
                 if (this.paymentMethod === 'promptpay') {
-                    window.Omise.createSource(
-                        'promptpay',
-                        {
-                            amount: this.totalPrice * 100,
-                            currency: 'THB'
-                        },
-                        (statusCode, response) => {
-                            if (statusCode === 200) {
-                                this.handleBackendCharge({ source: response.id })
-                            } else {
-                                alert('ไม่สามารถสร้างรายการชำระเงินได้: ' + response.message)
-                                this.isSubmitting = false
-                            }
+                    window.Omise.createSource('promptpay', { amount: this.totalPrice * 100, currency: 'THB' }, (statusCode, response) => {
+                        if (statusCode === 200) {
+                            this.handleBackendCharge({ source: response.id })
+                        } else {
+                            alert('ไม่สามารถสร้างรายการชำระเงินได้: ' + response.message)
+                            this.isSubmitting = false
                         }
-                    )
+                    })
                 } else {
                     const [expMonth, expYear] = this.card.expiry.split('/')
                     const parsedYear = parseInt(expYear)
-                    window.Omise.createToken(
-                        'card',
-                        {
-                            name: this.profile?.displayName || 'Customer',
-                            number: this.card.number.replace(/\s/g, ''),
-                            expiration_month: parseInt(expMonth),
-                            expiration_year: parsedYear < 100 ? 2000 + parsedYear : parsedYear,
-                            security_code: parseInt(this.card.cvv)
-                        },
-                        (statusCode, response) => {
-                            if (statusCode === 200) {
-                                this.handleBackendCharge({ token: response.id })
-                            } else {
-                                alert('ข้อมูลบัตรไม่ถูกต้อง: ' + response.message)
-                                this.isSubmitting = false
-                            }
+                    window.Omise.createToken('card', {
+                        name: this.profile?.displayName || 'Customer',
+                        number: this.card.number.replace(/\s/g, ''),
+                        expiration_month: parseInt(expMonth),
+                        expiration_year: parsedYear < 100 ? 2000 + parsedYear : parsedYear,
+                        security_code: parseInt(this.card.cvv)
+                    }, (statusCode, response) => {
+                        if (statusCode === 200) {
+                            this.handleBackendCharge({ token: response.id })
+                        } else {
+                            alert('ข้อมูลบัตรไม่ถูกต้อง: ' + response.message)
+                            this.isSubmitting = false
                         }
-                    )
+                    })
                 }
             } catch (error) {
                 console.error(error)
@@ -276,14 +247,13 @@ export default {
                     displayName: this.profile?.displayName,
                     ...paymentData
                 })
-
                 if (result.data.success) {
                     this.$router.push({
                         name: 'payment',
                         query: {
                             bookingId: result.data.bookingId,
                             authorizeUri: result.data.authorizeUri,
-                            qrImage: result.data.qrImage, // เพิ่มบรรทัดนี้ครับ!
+                            qrImage: result.data.qrImage,
                             amount: this.totalPrice
                         }
                     })
@@ -304,147 +274,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.checkout-container {
-    min-height: 100vh;
-    background-color: #fcfcfc;
-    padding-bottom: 120px;
-}
-.checkout-header {
-    background: white;
-    padding: 16px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-.back-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-}
-.summary-mini {
-    background: #333;
-    color: white;
-    padding: 20px;
-    margin: 16px;
-    border-radius: 16px;
-}
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.2rem;
-}
-.total-price {
-    font-weight: 900;
-    color: #00b900;
-}
-.summary-sub {
-    font-size: 0.9rem;
-    opacity: 0.7;
-    margin-top: 4px;
-}
-.checkout-section {
-    padding: 0 16px;
-    margin-bottom: 24px;
-}
-h3 {
-    font-size: 1rem;
-    color: #333;
-    margin-bottom: 12px;
-}
-.form-input {
-    width: 100%;
-    padding: 14px;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    font-size: 1rem;
-    background: white;
-    box-sizing: border-box;
-}
-.payment-methods {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-.method-item {
-    padding: 16px;
-    border: 1.5px solid #eee;
-    border-radius: 16px;
-    background: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.method-item.active {
-    border-color: #00b900;
-    background: #f6ffed;
-    color: #00b900;
-}
-.method-icon {
-    font-size: 1.5rem;
-}
-.card-form {
-    padding: 0 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-}
-.form-group label {
-    display: block;
-    font-size: 0.8rem;
-    color: #999;
-    margin-bottom: 4px;
-}
-.checkout-footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 20px;
-    background: white;
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
-    max-width: 600px;
-    margin: 0 auto;
-}
-.pay-btn {
-    width: 100%;
-    background: #00b900;
-    color: white;
-    border: none;
-    padding: 18px;
-    border-radius: 16px;
-    font-size: 1.1rem;
-    font-weight: bold;
-    cursor: pointer;
-}
-.pay-btn:disabled {
-    background: #eee;
-    color: #999;
-    cursor: not-allowed;
-}
-.animate-fade {
-    animation: fadeIn 0.3s ease-in-out;
-}
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>

@@ -1,69 +1,86 @@
 <template>
-    <div class="payment-view">
-        <header class="payment-header">
-            <h2>{{ authorizeUri ? 'ยืนยันการชำระเงิน' : 'ชำระเงินผ่าน PromptPay' }}</h2>
+    <div class="min-h-screen bg-[#f4f7f6] pb-10">
+        <header class="bg-white px-4 py-4 text-center border-b border-gray-100">
+            <h2 class="text-xl m-0 font-semibold text-gray-800">
+                {{ authorizeUri ? 'ยืนยันการชำระเงิน' : 'ชำระเงินผ่าน PromptPay' }}
+            </h2>
         </header>
 
-        <main class="payment-content">
-            <div v-if="loading" class="loading-box">
-                <p>กำลังเตรียมรายการ...</p>
-                <div class="spinner-small"></div>
+        <main class="px-4 py-6 max-w-sm mx-auto">
+            <div v-if="loading" class="text-center py-12">
+                <p class="text-gray-500 mb-4">กำลังเตรียมรายการ...</p>
+                <div class="spinner-sm mx-auto"></div>
             </div>
 
-            <div v-else class="qr-container animate-fade">
-                <div class="qr-card">
-                    <div class="qr-header">
+            <div v-else class="animate-fade">
+                <!-- QR Card -->
+                <div class="bg-white rounded-3xl shadow-[0_10px_25px_rgba(0,0,0,0.08)] mb-6 overflow-hidden">
+                    <div class="bg-promptpay px-3 py-3 text-center">
                         <img
                             src="https://upload.wikimedia.org/wikipedia/commons/c/c5/PromptPay-logo.png"
                             alt="PromptPay"
-                            class="pp-logo"
+                            class="h-7 inline"
                         />
                     </div>
 
-                    <div class="qr-image-box" v-if="qrImage && bookingStatus === 'pending'">
-                        <div class="timer-display" :class="{ 'timer-low': timeLeft < 20 }">
-                            <span class="timer-label">สแกนจ่ายภายใน:</span>
-                            <span class="timer-value">{{ formattedTime }}</span>
+                    <!-- QR image + timer -->
+                    <div v-if="qrImage && bookingStatus === 'pending'" class="px-6 py-6 text-center bg-white">
+                        <div
+                            class="mb-5 p-3 bg-red-50 border border-red-100 rounded-xl flex flex-col items-center"
+                            :class="{ 'bg-red-100 [animation:pulse-opacity_1s_infinite]': timeLeft < 20 }"
+                        >
+                            <span class="text-xs text-red-500 font-semibold">สแกนจ่ายภายใน:</span>
+                            <span class="text-2xl font-extrabold text-red-700 font-mono">{{ formattedTime }}</span>
                         </div>
-                        <img :src="qrImage" alt="QR Code" class="qr-img" />
-                    </div>
-                    <div v-else-if="bookingStatus === 'expired'" class="expired-box animate-fade">
-                        <div class="expired-icon">⏳</div>
-                        <h3>หมดเวลาชำระเงิน</h3>
-                        <p>กรุณากลับไปเลือกเวลาใหม่อีกครั้งครับ</p>
-                    </div>
-                    <div v-else class="error-box">
-                        <p v-if="!qrImage">ไม่สามารถโหลด QR Code ได้ กรุณาลองใหม่</p>
+                        <img
+                            :src="qrImage"
+                            alt="QR Code"
+                            class="w-full max-w-[250px] h-auto border border-gray-100 rounded-xl mx-auto"
+                        />
                     </div>
 
-                    <div class="payment-amount">
-                        <span class="label">ยอดชำระ</span>
-                        <span class="amount">฿{{ amount?.toLocaleString() }}</span>
+                    <!-- Expired state -->
+                    <div v-else-if="bookingStatus === 'expired'" class="animate-fade px-5 py-10 text-center">
+                        <div class="text-5xl mb-4">⏳</div>
+                        <h3 class="text-gray-800 mb-2">หมดเวลาชำระเงิน</h3>
+                        <p class="text-gray-500 text-sm">กรุณากลับไปเลือกเวลาใหม่อีกครั้งครับ</p>
+                    </div>
+
+                    <!-- Error state -->
+                    <div v-else class="px-6 py-6 text-center">
+                        <p v-if="!qrImage" class="text-gray-500">ไม่สามารถโหลด QR Code ได้ กรุณาลองใหม่</p>
+                    </div>
+
+                    <!-- Amount -->
+                    <div class="bg-gray-50 px-4 py-4 border-t border-dashed border-gray-200 flex flex-col items-center">
+                        <span class="text-gray-400 text-xs">ยอดชำระ</span>
+                        <span class="text-[1.8rem] font-black text-gray-800">฿{{ amount?.toLocaleString() }}</span>
                     </div>
                 </div>
 
-                <div class="payment-info">
-                    <p class="instruction">กรุณาสแกน QR Code ด้านบนด้วยแอปธนาคาร</p>
-                    <div class="status-badge" :class="statusClass">
-                        <div class="spinner-tiny" v-if="bookingStatus === 'pending'"></div>
+                <!-- Status -->
+                <div class="text-center mb-5">
+                    <p class="text-gray-500 text-sm mb-4">กรุณาสแกน QR Code ด้านบนด้วยแอปธนาคาร</p>
+                    <div class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full font-bold" :class="statusBadgeClass">
+                        <div v-if="bookingStatus === 'pending'" class="spinner-tiny-amber"></div>
                         {{ statusText }}
                     </div>
                 </div>
 
-                <p v-if="bookingStatus === 'pending'" class="pending-hint">
+                <p v-if="bookingStatus === 'pending'" class="text-center text-gray-400 text-sm">
                     ระบบกำลังรอรับยอดเงิน...
                 </p>
             </div>
         </main>
 
-        <footer class="payment-footer">
-                <button
-                    class="cancel-btn"
-                    @click="$router.push('/')"
-                    v-if="bookingStatus === 'pending' || bookingStatus === 'expired'"
-                >
-                    {{ bookingStatus === 'expired' ? 'กลับหน้าแรก' : 'ยกเลิกรายการและกลับหน้าแรก' }}
-                </button>
+        <footer class="px-5 text-center">
+            <button
+                v-if="bookingStatus === 'pending' || bookingStatus === 'expired'"
+                class="bg-transparent border-0 text-gray-400 underline text-sm cursor-pointer"
+                @click="$router.push('/')"
+            >
+                {{ bookingStatus === 'expired' ? 'กลับหน้าแรก' : 'ยกเลิกรายการและกลับหน้าแรก' }}
+            </button>
         </footer>
     </div>
 </template>
@@ -99,34 +116,26 @@ export default {
             if (this.bookingStatus === 'expired') return 'หมดเวลาชำระเงิน'
             return 'รอการชำระเงิน...'
         },
-        statusClass() {
-            return {
-                'status-paid': this.bookingStatus === 'paid',
-                'status-failed': this.bookingStatus === 'failed',
-                'status-expired': this.bookingStatus === 'expired',
-                'status-pending': this.bookingStatus === 'pending'
-            }
+        statusBadgeClass() {
+            if (this.bookingStatus === 'paid') return 'bg-[#f6ffed] text-line-green'
+            if (this.bookingStatus === 'failed') return 'bg-[#fff1f0] text-red-600'
+            if (this.bookingStatus === 'expired') return 'bg-gray-100 text-gray-400'
+            return 'bg-[#fff7e6] text-[#faad14]'
         }
     },
     methods: {
         startTimer(createdAt) {
             if (this.timerInterval) clearInterval(this.timerInterval)
-
             const updateTimer = () => {
                 const now = new Date()
                 const diff = Math.floor((now - createdAt) / 1000)
                 this.timeLeft = Math.max(0, 900 - diff)
-
                 if (this.timeLeft <= 0) {
                     clearInterval(this.timerInterval)
                     this.timerInterval = null
-                    // Wait 3 seconds before checking status to ensure Omise has finalized its state
-                    setTimeout(() => {
-                        this.executeCheckStatus()
-                    }, 3000)
+                    setTimeout(() => { this.executeCheckStatus() }, 3000)
                 }
             }
-
             updateTimer()
             this.timerInterval = setInterval(updateTimer, 1000)
         },
@@ -137,12 +146,9 @@ export default {
                 if (docSnap.exists()) {
                     const data = docSnap.data()
                     this.bookingStatus = data.status
-
-                    // Start timer based on createdAt from DB
                     if (data.createdAt && !this.timerInterval) {
                         this.startTimer(data.createdAt.toDate())
                     }
-
                     if (this.bookingStatus === 'paid' || this.bookingStatus === 'failed') {
                         if (this.unsubscribe) { this.unsubscribe(); this.unsubscribe = null }
                         const dest = this.bookingStatus === 'paid' ? 'success' : 'fail'
@@ -169,8 +175,6 @@ export default {
             this.$router.push('/')
             return
         }
-        // Credit card 3DS: redirect immediately to the bank's auth page.
-        // Omise will redirect back to return_uri after authentication.
         if (this.authorizeUri) {
             window.location.href = this.authorizeUri
             return
@@ -186,206 +190,21 @@ export default {
 </script>
 
 <style scoped>
-.payment-view {
-    min-height: 100vh;
-    background-color: #f4f7f6;
-    padding-bottom: 40px;
+.spinner-sm {
+    border: 3px solid #e5e7eb;
+    border-top-color: #6b7280;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    animation: spin 1s linear infinite;
 }
-.payment-header {
-    background: #fff;
-    padding: 16px;
-    text-align: center;
-    border-bottom: 1px solid #eee;
-}
-.payment-header h2 {
-    font-size: 1.2rem;
-    margin: 0;
-    color: #333;
-}
-.payment-content {
-    padding: 24px 16px;
-    max-width: 400px;
-    margin: 0 auto;
-}
-.qr-card {
-    background: #fff;
-    border-radius: 24px;
-    padding: 0;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-    margin-bottom: 24px;
-    overflow: hidden;
-}
-.qr-header {
-    background: #003764;
-    padding: 12px;
-    text-align: center;
-}
-.pp-logo {
-    height: 30px;
-}
-.qr-image-box {
-    padding: 24px;
-    text-align: center;
-    background: #fff;
-}
-.qr-img {
-    width: 100%;
-    max-width: 250px;
-    height: auto;
-    border: 1px solid #eee;
-    border-radius: 12px;
-}
-.payment-amount {
-    background: #fcfcfc;
-    padding: 16px;
-    border-top: 1px dashed #eee;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-.payment-amount .label {
-    color: #888;
-    font-size: 0.8rem;
-}
-.payment-amount .amount {
-    font-size: 1.8rem;
-    font-weight: 900;
-    color: #333;
-}
-.payment-info {
-    text-align: center;
-    margin-bottom: 20px;
-}
-.instruction {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 16px;
-}
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 24px;
-    border-radius: 50px;
-    font-weight: 700;
-    margin-bottom: 20px;
-}
-.status-pending {
-    background: #fff7e6;
-    color: #faad14;
-}
-.status-expired {
-    background: #f5f5f5;
-    color: #999;
-}
-.status-paid {
-    background: #f6ffed;
-    color: #00b900;
-}
-.status-failed {
-    background: #fff1f0;
-    color: #f5222d;
-}
-.timer-display {
-    margin-bottom: 20px;
-    padding: 12px;
-    background: #fdf2f2;
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border: 1px solid #fee2e2;
-}
-.timer-low {
-    background: #fee2e2;
-    animation: pulse 1s infinite;
-}
-@keyframes pulse {
-    0% {
-        opacity: 1;
-    }
-    50% {
-        opacity: 0.8;
-    }
-    100% {
-        opacity: 1;
-    }
-}
-.timer-label {
-    font-size: 0.75rem;
-    color: #ef4444;
-    font-weight: 600;
-}
-.timer-value {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #b91c1c;
-    font-family: monospace;
-}
-.expired-box {
-    padding: 40px 20px;
-    text-align: center;
-}
-.expired-icon {
-    font-size: 3rem;
-    margin-bottom: 16px;
-}
-.expired-box h3 {
-    color: #333;
-    margin-bottom: 8px;
-}
-.expired-box p {
-    color: #666;
-    font-size: 0.9rem;
-}
-.check-status-btn {
-    width: 100%;
-    padding: 14px;
-    background-color: #333;
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 600;
-    cursor: pointer;
-}
-.payment-footer {
-    padding: 20px;
-    text-align: center;
-}
-.cancel-btn {
-    background: none;
-    border: none;
-    color: #999;
-    text-decoration: underline;
-    font-size: 0.85rem;
-}
-.spinner-tiny {
+.spinner-tiny-amber {
     border: 2px solid rgba(250, 173, 20, 0.2);
-    border-top: 2px solid #faad14;
+    border-top-color: #faad14;
     border-radius: 50%;
     width: 14px;
     height: 14px;
     animation: spin 1s linear infinite;
-}
-@keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-.animate-fade {
-    animation: fadeIn 0.4s ease;
-}
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
+    flex-shrink: 0;
 }
 </style>

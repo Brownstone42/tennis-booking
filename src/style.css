@@ -1,0 +1,67 @@
+@import "tailwindcss";
+
+@theme {
+    /* Brand */
+    --color-line-green: #00b900;
+    --color-line-green-light: #e8ffe8;
+
+    /* Ant Design palette (used in admin) */
+    --color-ant-blue: #1890ff;
+    --color-ant-navy: #001529;
+
+    /* Slot status colors */
+    --color-slot-available-bg: #f6ffed;
+    --color-slot-available-border: #b7eb8f;
+    --color-slot-available-text: #389e0d;
+    --color-slot-booked-bg: #e6f7ff;
+    --color-slot-booked-border: #91d5ff;
+    --color-slot-booked-text: #096dd9;
+    --color-slot-closed-bg: #fff1f0;
+    --color-slot-closed-border: #ffa39e;
+    --color-slot-closed-text: #cf1322;
+    --color-slot-locked-bg: #fff7e6;
+    --color-slot-locked-border: #ffd591;
+    --color-slot-locked-text: #d46b08;
+
+    /* PromptPay */
+    --color-promptpay: #003764;
+
+    /* Font */
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* ─── Global base ─── */
+@layer base {
+    body {
+        @apply m-0 p-0 font-sans bg-white text-gray-900;
+    }
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
+}
+
+/* ─── Shared animations ─── */
+@layer utilities {
+    .animate-fade {
+        animation: fadeIn 0.3s ease both;
+    }
+    .animate-slide-up {
+        animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-opacity {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.8; }
+}
