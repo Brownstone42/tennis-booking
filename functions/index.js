@@ -3,6 +3,7 @@ const { setGlobalOptions } = require('firebase-functions/v2')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const omise = require('omise')
+const crypto = require('crypto')
 
 initializeApp()
 const db = getFirestore()
@@ -16,13 +17,37 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
     }
 
     const client = omise({ secretKey: OMISE_SECRET_KEY })
-    const { amount, source, token, courtId, date, hours, phone, tenantId, userId, displayName } =
+    const { source, token, courtId, date, hours, phone, tenantId, userId, displayName } =
         request.data
 
     try {
-        const expiresAt = new Date(Date.now() + 60 * 1000).toISOString()
+        // Calculate price server-side — never trust the client-supplied amount.
+        const settingsSnap = await db.collection('settings').doc(tenantId).get()
+        if (!settingsSnap.exists) {
+            throw new HttpsError('not-found', 'Venue configuration not found.')
+        }
+        const settings = settingsSnap.data()
+        const court = settings.courts.find((c) => c.id === Number(courtId))
+        if (!court) {
+            throw new HttpsError('not-found', `Court ${courtId} not found.`)
+        }
+        const hoursArray = hours.split(',').map(Number)
+        let calculatedTHB = 0
+        for (const hour of hoursArray) {
+            const cp = court.pricing
+            if (cp && cp.length > 0) {
+                const rule = cp.find((p) => hour >= p.start && hour < p.end)
+                if (rule) { calculatedTHB += rule.rate; continue }
+            }
+            const dp = settings.defaultPricing || settings.pricing || []
+            const defaultRule = dp.find((p) => hour >= p.start && hour < p.end)
+            calculatedTHB += defaultRule ? defaultRule.rate : 0
+        }
+        const amountInSatang = calculatedTHB * 100
+
+        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
         const chargeData = {
-            amount: amount,
+            amount: amountInSatang,
             currency: 'thb',
             description: `Booking for ${displayName} at Court ${courtId} on ${date}`,
             // return_uri สำหรับกรณีที่ลูกค้าไม่ได้จ่ายผ่านหน้าเรา (เช่นไปจ่ายที่แอปธนาคารแล้วระบบเด้งกลับ)
@@ -51,7 +76,7 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
             date,
             hours: hours.split(',').map(Number),
             phone,
-            amount: amount / 100,
+            amount: calculatedTHB,
             status: charge.status === 'successful' ? 'paid' : 'pending',
             omiseChargeId: charge.id,
             userId,
@@ -74,7 +99,8 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
         }
     } catch (error) {
         console.error('Omise Charge Error:', error)
-        throw new HttpsError('internal', error.message)
+        if (error instanceof HttpsError) throw error
+        throw new HttpsError('internal', 'An internal error occurred.')
     }
 })
 
@@ -94,6 +120,14 @@ exports.checkBookingStatus = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (re
         }
 
         const booking = bookingSnap.data()
+
+        // Ownership check: LINE LIFF users don't have Firebase Auth in this app's current
+        // architecture (no custom token minting), so request.auth is null for them.
+        // This guard enforces ownership when Firebase Auth IS present (e.g. future admin use).
+        if (request.auth && booking.userId && request.auth.uid !== booking.userId) {
+            throw new HttpsError('permission-denied', 'Access denied.')
+        }
+
         // If it's already in a final state, just return
         if (booking.status === 'paid' || booking.status === 'expired' || booking.status === 'failed') {
             return { success: true, status: booking.status }
@@ -123,11 +157,37 @@ exports.checkBookingStatus = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (re
         return { success: true, status: newStatus }
     } catch (error) {
         console.error('Check Charge Error:', error)
-        throw new HttpsError('internal', error.message)
+        if (error instanceof HttpsError) throw error
+        throw new HttpsError('internal', 'An internal error occurred.')
     }
 })
 
-exports.omiseWebhook = onRequest(async (req, res) => {
+exports.omiseWebhook = onRequest({ secrets: ['OMISE_WEBHOOK_SECRET'] }, async (req, res) => {
+    const OMISE_WEBHOOK_SECRET = process.env.OMISE_WEBHOOK_SECRET
+    if (!OMISE_WEBHOOK_SECRET) {
+        console.error('OMISE_WEBHOOK_SECRET not configured')
+        res.status(500).send('Server configuration error')
+        return
+    }
+
+    const signature = req.headers['x-omise-signature']
+    if (!signature) {
+        console.warn('Webhook rejected: missing x-omise-signature header')
+        res.status(401).send('Unauthorized')
+        return
+    }
+
+    const expected = crypto
+        .createHmac('sha256', OMISE_WEBHOOK_SECRET)
+        .update(req.rawBody)
+        .digest('hex')
+
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+        console.warn('Webhook rejected: signature mismatch')
+        res.status(401).send('Invalid signature')
+        return
+    }
+
     const event = req.body
     console.log('Omise Webhook received! Key:', event.key, 'Full Payload:', JSON.stringify(event))
     if (event.key === 'charge.complete') {

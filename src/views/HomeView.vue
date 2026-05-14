@@ -247,7 +247,7 @@ export default {
         isBookingExpired(booking) {
             if (booking.status !== 'pending' || !booking.createdAt) return false
             const diffInSeconds = (new Date() - booking.createdAt.toDate()) / 1000
-            return diffInSeconds > 60
+            return diffInSeconds > 900
         },
         async fetchAvailability() {
             // Clean up existing listeners
@@ -380,8 +380,8 @@ export default {
             if (this.isPast(hour)) return 'หมดเวลา'
 
             // Check if it's my booking
-            const myBooking = this.currentCourtBookings.find(b => 
-                b.userId === this.profile.userId && 
+            const myBooking = this.currentCourtBookings.find(b =>
+                b.userId === this.profile?.userId &&
                 b.hours.includes(hour) &&
                 (b.status === 'paid' || (b.status === 'pending' && !this.isBookingExpired(b)))
             )

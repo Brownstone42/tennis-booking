@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Storage\\\\Antigravity\\\\appx\\\\tennis-booking\" -Recurse -Force)",
+      "Bash(Select-Object FullName)"
+    ]
+  },
+  "enabledPlugins": {
+    "skill-creator@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": true
+  }
+}

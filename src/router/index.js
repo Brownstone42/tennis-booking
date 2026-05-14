@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 import HomeView from '../views/HomeView.vue'
 import CheckoutView from '../views/CheckoutView.vue'
 import PaymentView from '../views/PaymentView.vue'
@@ -11,6 +13,15 @@ import AdminDashboard from '../views/admin/AdminDashboard.vue'
 import AdminSettings from '../views/admin/AdminSettings.vue'
 import AdminSchedule from '../views/admin/AdminSchedule.vue'
 
+// Waits for Firebase Auth to resolve before deciding — avoids false redirects on page load.
+const requireAdminAuth = () =>
+    new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe()
+            resolve(user ? true : { name: 'admin-login' })
+        })
+    })
+
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
@@ -22,9 +33,9 @@ const router = createRouter({
 
         // Admin Routes
         { path: '/admin/login', name: 'admin-login', component: AdminLogin },
-        { path: '/admin/dashboard', name: 'admin-dashboard', component: AdminDashboard },
-        { path: '/admin/settings', name: 'admin-settings', component: AdminSettings },
-        { path: '/admin/schedule', name: 'admin-schedule', component: AdminSchedule }
+        { path: '/admin/dashboard', name: 'admin-dashboard', component: AdminDashboard, beforeEnter: requireAdminAuth },
+        { path: '/admin/settings', name: 'admin-settings', component: AdminSettings, beforeEnter: requireAdminAuth },
+        { path: '/admin/schedule', name: 'admin-schedule', component: AdminSchedule, beforeEnter: requireAdminAuth }
     ],
     scrollBehavior(to, from, savedPosition) {
         return { top: 0 }

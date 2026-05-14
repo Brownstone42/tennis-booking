@@ -201,7 +201,7 @@ export default {
                     const isStillPending =
                         data.status === 'pending' &&
                         data.createdAt &&
-                        (currentTime - data.createdAt.toDate()) / 1000 < 60
+                        (currentTime - data.createdAt.toDate()) / 1000 < 900
 
                     if (isPaid || isStillPending) {
                         if (data.hours.some((h) => this.hoursArray.includes(h))) {
@@ -220,6 +220,8 @@ export default {
                 }
             } catch (err) {
                 console.error('Error checking availability:', err)
+                this.isSubmitting = false
+                return
             }
             const publicKey = import.meta.env.VITE_OMISE_PUBLIC_KEY
             if (!publicKey || publicKey === 'pkey_test_xxxxxxxxxxxxxx') {
@@ -248,13 +250,14 @@ export default {
                     )
                 } else {
                     const [expMonth, expYear] = this.card.expiry.split('/')
+                    const parsedYear = parseInt(expYear)
                     window.Omise.createToken(
                         'card',
                         {
                             name: this.profile?.displayName || 'Customer',
                             number: this.card.number.replace(/\s/g, ''),
                             expiration_month: parseInt(expMonth),
-                            expiration_year: parseInt(expYear),
+                            expiration_year: parsedYear < 100 ? 2000 + parsedYear : parsedYear,
                             security_code: parseInt(this.card.cvv)
                         },
                         (statusCode, response) => {

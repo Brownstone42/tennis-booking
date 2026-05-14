@@ -1,7 +1,7 @@
 <template>
     <div class="payment-view">
         <header class="payment-header">
-            <h2>ชำระเงินผ่าน PromptPay</h2>
+            <h2>{{ authorizeUri ? 'ยืนยันการชำระเงิน' : 'ชำระเงินผ่าน PromptPay' }}</h2>
         </header>
 
         <main class="payment-content">
@@ -78,11 +78,12 @@ export default {
         return {
             bookingId: '',
             qrImage: '',
+            authorizeUri: '',
             amount: 0,
             bookingStatus: 'pending',
             loading: true,
             unsubscribe: null,
-            timeLeft: 60,
+            timeLeft: 900,
             timerInterval: null
         }
     },
@@ -114,7 +115,7 @@ export default {
             const updateTimer = () => {
                 const now = new Date()
                 const diff = Math.floor((now - createdAt) / 1000)
-                this.timeLeft = Math.max(0, 60 - diff)
+                this.timeLeft = Math.max(0, 900 - diff)
 
                 if (this.timeLeft <= 0) {
                     clearInterval(this.timerInterval)
@@ -161,9 +162,16 @@ export default {
     created() {
         this.bookingId = this.$route.query.bookingId
         this.qrImage = this.$route.query.qrImage
+        this.authorizeUri = this.$route.query.authorizeUri || ''
         this.amount = Number(this.$route.query.amount)
         if (!this.bookingId) {
             this.$router.push('/')
+            return
+        }
+        // Credit card 3DS: redirect immediately to the bank's auth page.
+        // Omise will redirect back to return_uri after authentication.
+        if (this.authorizeUri) {
+            window.location.href = this.authorizeUri
             return
         }
         this.loading = false
