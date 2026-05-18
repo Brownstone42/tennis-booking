@@ -46,8 +46,8 @@
 
                 <!-- Schedule grid -->
                 <div class="bg-white rounded-xl overflow-hidden shadow-[0_4px_12px_rgba(0,0,0,0.03)] relative">
-                    <div v-if="isLoading" class="absolute inset-0 bg-white/70 flex items-center justify-center z-10 font-bold">
-                        กำลังโหลดข้อมูล...
+                    <div v-if="isLoading" class="absolute inset-0 bg-white/90 flex flex-col items-center justify-center z-10 gap-3 px-8">
+                        <div v-for="n in 7" :key="n" class="w-full h-10 bg-gray-200 rounded-lg animate-pulse"></div>
                     </div>
 
                     <!-- Daily view -->
@@ -134,6 +134,9 @@
                         <label class="block mb-2 font-medium">ถึงวันที่</label>
                         <input type="date" v-model="genEnd" class="w-full px-3 py-3 border border-gray-200 rounded-lg" />
                     </div>
+                    <div v-if="previewSlotCount > 0" class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-sm font-semibold text-ant-blue">
+                        จะสร้าง {{ previewSlotCount }} slots ({{ previewDays }} วัน × {{ courts.length }} คอร์ท × {{ previewHours }} ชั่วโมง)
+                    </div>
                     <p class="text-xs text-gray-400 mb-6 leading-relaxed">
                         * ระบบจะสร้าง Slot โดยใช้เวลาเปิด-ปิด และราคาที่ตั้งไว้ในหน้า Settings โดยให้สถานะเป็น 'pending'
                     </p>
@@ -167,8 +170,9 @@
 <script>
 import AdminSidebar from '../../components/AdminSidebar.vue'
 import SlotItem from '../../components/SlotItem.vue'
-import { mapState } from 'pinia'
+import { mapState, mapActions } from 'pinia'
 import { useConfigStore } from '../../stores/config'
+import { useToastStore } from '../../stores/toast'
 import { db } from '../../firebase'
 import { TENANT_ID } from '../../constants'
 import { isBookingExpired, getPriceForHour } from '../../utils/booking'
@@ -210,6 +214,17 @@ export default {
                 label: format(d, 'EEE')
             }))
         },
+        previewDays() {
+            try {
+                return eachDayOfInterval({ start: parseISO(this.genStart), end: parseISO(this.genEnd) }).length
+            } catch { return 0 }
+        },
+        previewHours() {
+            return this.operatingHours.close - this.operatingHours.open
+        },
+        previewSlotCount() {
+            return this.previewDays * this.courts.length * this.previewHours
+        },
         slotsMap() {
             const map = new Map()
             this.slots.forEach((s) => {
@@ -225,6 +240,7 @@ export default {
         }
     },
     methods: {
+        ...mapActions(useToastStore, ['success', 'error']),
         formatTime(h) { return `${String(h).padStart(2, '0')}:00` },
         getSlot(date, courtId, hour) { return this.slotsMap.get(`${date}_${courtId}_${hour}`) },
         async handleGenerate() {
@@ -250,10 +266,10 @@ export default {
                 await batch.commit()
                 this.showGenerateModal = false
                 this.fetchSlots()
-                alert('Generate Slots สำเร็จ!')
+                this.success('Generate Slots สำเร็จ!')
             } catch (error) {
                 console.error(error)
-                alert('เกิดข้อผิดพลาด: ' + error.message)
+                this.error('เกิดข้อผิดพลาด: ' + error.message)
             } finally {
                 this.isGenerating = false
                 this.isLoading = false
@@ -263,7 +279,7 @@ export default {
             try {
                 await updateDoc(doc(db, 'slots', id), { status })
             } catch (error) {
-                alert('ไม่สามารถอัปเดตสถานะได้')
+                this.error('ไม่สามารถอัปเดตสถานะได้')
             }
         },
         fetchSlots() {
@@ -281,7 +297,7 @@ export default {
                 this.isLoading = false
             }, (error) => {
                 console.error('Firestore error:', error)
-                alert('Error loading slots: ' + error.message)
+                this.error('Error loading slots: ' + error.message)
                 this.isLoading = false
             })
             let bq
@@ -323,10 +339,10 @@ export default {
                 const count = this.selectedSlotIds.length
                 this.clearSelection()
                 this.isSelectionMode = false
-                alert(`อัปเดต ${count} รายการสำเร็จ!`)
+                this.success(`อัปเดต ${count} รายการสำเร็จ!`)
             } catch (error) {
                 console.error('Bulk update error:', error)
-                alert('เกิดข้อผิดพลาดในการอัปเดตแบบกลุ่ม: ' + error.message)
+                this.error('เกิดข้อผิดพลาดในการอัปเดตแบบกลุ่ม: ' + error.message)
             } finally {
                 this.isLoading = false
             }

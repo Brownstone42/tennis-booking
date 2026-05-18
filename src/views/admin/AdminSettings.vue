@@ -3,8 +3,9 @@
         <AdminSidebar />
 
         <main class="flex-1">
-            <header class="bg-white px-8 py-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+            <header class="bg-white px-8 py-6 shadow-[0_1px_4px_rgba(0,0,0,0.05)] flex items-center gap-4">
                 <h1 class="m-0 text-2xl font-bold text-gray-900">ตั้งค่าสนาม (SaaS Configuration)</h1>
+                <span v-if="isDirty" class="px-3 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-700 text-xs font-bold">● unsaved changes</span>
             </header>
 
             <div class="p-8 max-w-[1100px] mx-auto">
@@ -129,6 +130,7 @@
 import AdminSidebar from '../../components/AdminSidebar.vue'
 import { mapState, mapActions } from 'pinia'
 import { useConfigStore } from '../../stores/config'
+import { useToastStore } from '../../stores/toast'
 import { auth } from '../../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 import { TENANT_ID } from '../../constants'
@@ -151,6 +153,16 @@ export default {
     },
     computed: {
         ...mapState(useConfigStore, ['courtName', 'operatingHours', 'bookingAdvanceDays', 'courts', 'defaultPricing', 'isLoading']),
+        isDirty() {
+            if (this.isLoading) return false
+            return JSON.stringify(this.localConfig) !== JSON.stringify({
+                courtName: this.courtName,
+                operatingHours: this.operatingHours,
+                bookingAdvanceDays: this.bookingAdvanceDays,
+                courts: this.courts,
+                defaultPricing: this.defaultPricing
+            })
+        },
         currentPricingList() {
             if (this.activePricingTab === 'default') return this.localConfig.defaultPricing
             const court = this.localConfig.courts.find((c) => c.id === this.activePricingTab)
@@ -165,8 +177,16 @@ export default {
             return court ? court.name : ''
         }
     },
+    beforeRouteLeave(to, from, next) {
+        if (this.isDirty && !window.confirm('มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก ต้องการออกโดยไม่บันทึกหรือไม่?')) {
+            next(false)
+        } else {
+            next()
+        }
+    },
     methods: {
         ...mapActions(useConfigStore, ['saveConfig']),
+        ...mapActions(useToastStore, ['success', 'error']),
         formatTime(h) { return `${String(h).padStart(2, '0')}:00` },
         addCourt() {
             this.localConfig.courts.push({ id: Date.now(), name: `คอร์ท ${this.localConfig.courts.length + 1}`, type: '', pricing: [] })
@@ -190,9 +210,9 @@ export default {
                     courts: this.localConfig.courts,
                     defaultPricing: this.localConfig.defaultPricing
                 })
-                alert('บันทึกการตั้งค่าสำเร็จ!')
+                this.success('บันทึกการตั้งค่าสำเร็จ!')
             } catch (error) {
-                alert('เกิดข้อผิดพลาด: ' + error.message)
+                this.error('เกิดข้อผิดพลาด: ' + error.message)
             } finally {
                 this.isSaving = false
             }

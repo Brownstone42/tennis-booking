@@ -1,5 +1,6 @@
 <template>
     <div id="app">
+        <ToastNotification />
         <!-- User header -->
         <header
             v-if="!isAdminRoute && isLoggedIn"
@@ -39,6 +40,7 @@
         <main :class="contentClass">
             <RouterView />
         </main>
+
     </div>
 </template>
 
@@ -46,9 +48,11 @@
 import { mapActions, mapState } from 'pinia'
 import { useLiffStore } from './stores/liff'
 import { useConfigStore } from './stores/config'
+import ToastNotification from './components/ToastNotification.vue'
 import { TENANT_ID } from './constants'
 
 export default {
+    components: { ToastNotification },
     computed: {
         ...mapState(useLiffStore, ['profile', 'isLoggedIn']),
         isAdminRoute() {

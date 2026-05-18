@@ -90,9 +90,10 @@
 <script>
 import { format, parseISO, isSameDay, startOfDay } from 'date-fns'
 import { th } from 'date-fns/locale'
-import { mapState } from 'pinia'
+import { mapState, mapActions } from 'pinia'
 import { useConfigStore } from '../stores/config'
 import { useLiffStore } from '../stores/liff'
+import { useToastStore } from '../stores/toast'
 import { db, functions } from '../firebase'
 import { httpsCallable } from 'firebase/functions'
 import { collection, query, where, getDocs } from 'firebase/firestore'
@@ -136,6 +137,7 @@ export default {
         }
     },
     methods: {
+        ...mapActions(useToastStore, ['success', 'error']),
         formatDate(dateStr) {
             if (!dateStr) return ''
             return format(parseISO(dateStr), 'd MMM yyyy', { locale: th })
@@ -174,7 +176,7 @@ export default {
                 selectedDate < today ||
                 (isSameDay(selectedDate, today) && this.hoursArray.some((h) => h <= now.getHours()))
             if (isAnyPast) {
-                alert('ขออภัยครับ มีบางช่วงเวลาที่เลือกหมดเวลาจองไปแล้ว กรุณาเลือกเวลาใหม่อีกครั้ง')
+                this.error('ขออภัยครับ มีบางช่วงเวลาที่เลือกหมดเวลาจองไปแล้ว กรุณาเลือกเวลาใหม่อีกครั้ง')
                 this.$router.push('/')
                 return
             }
@@ -182,7 +184,7 @@ export default {
             try {
                 const isAvailable = await this.checkSlotAvailability()
                 if (!isAvailable) {
-                    alert('ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง')
+                    this.error('ขออภัยครับ มีบางช่วงเวลาที่เลือกถูกจองไปแล้ว (หรือกำลังรอคนอื่นชำระเงิน) กรุณาเลือกเวลาใหม่อีกครั้ง')
                     this.isSubmitting = false
                     this.$router.push('/')
                     return
@@ -194,7 +196,7 @@ export default {
             }
             const publicKey = import.meta.env.VITE_OMISE_PUBLIC_KEY
             if (!publicKey || publicKey === 'pkey_test_xxxxxxxxxxxxxx') {
-                alert('กรุณาตั้งค่า OMISE_PUBLIC_KEY ใน .env ให้ถูกต้องก่อนครับ')
+                this.error('กรุณาตั้งค่า OMISE_PUBLIC_KEY ใน .env ให้ถูกต้องก่อนครับ')
                 this.isSubmitting = false
                 return
             }
@@ -205,7 +207,7 @@ export default {
                         if (statusCode === 200) {
                             this.handleBackendCharge({ source: response.id })
                         } else {
-                            alert('ไม่สามารถสร้างรายการชำระเงินได้: ' + response.message)
+                            this.error('ไม่สามารถสร้างรายการชำระเงินได้: ' + response.message)
                             this.isSubmitting = false
                         }
                     })
@@ -222,14 +224,14 @@ export default {
                         if (statusCode === 200) {
                             this.handleBackendCharge({ token: response.id })
                         } else {
-                            alert('ข้อมูลบัตรไม่ถูกต้อง: ' + response.message)
+                            this.error('ข้อมูลบัตรไม่ถูกต้อง: ' + response.message)
                             this.isSubmitting = false
                         }
                     })
                 }
             } catch (error) {
                 console.error(error)
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อ Omise')
+                this.error('เกิดข้อผิดพลาดในการเชื่อมต่อ Omise')
                 this.isSubmitting = false
             }
         },
@@ -260,7 +262,7 @@ export default {
                 }
             } catch (error) {
                 console.error('Charge Error:', error)
-                alert('การชำระเงินไม่สำเร็จ: ' + error.message)
+                this.error('การชำระเงินไม่สำเร็จ: ' + error.message)
             } finally {
                 this.isSubmitting = false
             }

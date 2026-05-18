@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { db } from '../firebase'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { useToastStore } from './toast'
 
 export const useConfigStore = defineStore('config', {
     state: () => ({
@@ -84,7 +85,7 @@ export const useConfigStore = defineStore('config', {
                 await this.fetchConfig(tenantId)
             } catch (error) {
                 console.error('Error seeding data:', error)
-                alert('เกิดข้อผิดพลาด: ' + error.message)
+                useToastStore().error('เกิดข้อผิดพลาด: ' + error.message)
             }
         }
     }
