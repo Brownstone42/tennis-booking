@@ -1,45 +1,65 @@
-# Admin UX/UI Improvement Plan
+# Next Plan Options
 
-## Implementation Order
+## Option A — Complete Admin Booking Actions (recommended first)
 
-### 1. Toast Notification Component (replaces all `alert()`)
-- Create `src/components/ToastNotification.vue` — slide-in from top-right, auto-dismiss 3s
-- Add to `App.vue` globally, expose via Pinia store or provide/inject
-- Replace every `alert(...)` call across: `AdminSchedule.vue`, `AdminSettings.vue`, `AdminDashboard.vue`, `CheckoutView.vue`, `PaymentView.vue`
+### A1. Booking Detail Drawer
+- Clicking the eye button opens a right-side drawer showing full booking info: date, court, hours, customer name, phone, payment type, amount, status, Omise charge ID, createdAt/paidAt
+- Drawer slides in from the right, closes on backdrop click or × button
+- No edit — read-only view for now
 
-### 2. Dashboard Stat Cards — dynamic + color + icons
-- Fix hardcoded `3 / 4` court availability — read from `useConfigStore` courts + real slot data
-- Add color-coded left border accent per card
-- Add icon per stat (booking count, revenue, courts available)
-- Add trend indicator (vs. yesterday) as a stretch goal
+### A2. Manual Booking Modal
+- Wire up the "+ เพิ่มการจอง (Manual)" button in AdminDashboard
+- Form fields: date, court (dropdown from config), hours (multi-select from operating hours), customer name, phone, amount
+- Writes directly to Firestore as `status: 'paid'` (manual bookings skip payment)
+- After save, table updates via existing `onSnapshot`
 
-### 3. Bookings Table — filter + search
-- Add a filter bar above the table: date range picker, status dropdown (`paid / pending / expired`), name/phone search input
-- Filter is client-side against the `bookings` array
-- Replace emoji action buttons (`👁️ ✏️`) with SVG icon buttons + tooltip on hover
-
-### 4. Sidebar — SVG icons + active left-border
-- Replace `📊 📅 ⚙️` emojis with inline SVG icons
-- Add `3px left border bg-ant-blue` on the active router-link (instead of full `bg-ant-blue` background)
-- Move logged-in user email into the sidebar footer (currently only shown in dashboard header)
-
-### 5. Skeleton Loading States
-- Replace the text overlay "กำลังโหลดข้อมูล..." in `AdminSchedule.vue` with pulsing skeleton rows
-- Add skeleton to `AdminDashboard.vue` bookings table initial load
-
-### 6. Settings — Unsaved Changes Guard
-- Add `beforeRouteLeave` navigation guard: warn if `localConfig` differs from store state
-- Show a subtle `● unsaved changes` pill in the page header when dirty
-
-### 7. Generate Modal — Slot Count Preview
-- Compute and display: `"จะสร้าง X slots (N วัน × M คอร์ท × H ชั่วโมง)"` before confirming
-- Dynamically updates as the user changes the date range
+### A3. Replace `confirm()` in removeCourt (AdminSettings)
+- `removeCourt` still uses a native `confirm()` dialog
+- Replace with an inline confirmation: clicking "ลบ" turns the row red + shows "ยืนยัน / ยกเลิก" buttons in-place
 
 ---
 
-## Other Notes
+## Option B — User-Facing UX Pass
 
-- All pages already use Tailwind CSS v4 — new components should follow the same pattern
-- Custom theme tokens: `bg-ant-blue` (#1890ff), `bg-ant-navy` (#001529), `bg-line-green` (#00b900)
-- Scoped `<style>` blocks using `@apply` must start with `@reference "../../style.css"`
-- No test runner — verify changes visually with `npm run dev`
+### B1. HomeView slot picker polish
+- Date picker as a horizontal scrollable strip (not a native `<input type="date">`)
+- Court tabs as pill toggles
+- Slot grid with cleaner status colors and price shown inside each slot cell
+
+### B2. CheckoutView redesign
+- Summary card (selected slots, total price) at the top
+- Payment method as icon cards (PromptPay / Credit Card), not a plain select
+- Form validation with inline error messages instead of toast
+
+### B3. PaymentView — PromptPay countdown
+- Circular countdown timer (not just a text number)
+- QR code larger, with a "บันทึก QR" save button
+- Auto-copy bank reference on tap
+
+### B4. Success / Fail pages
+- Success: booking summary card + "แชร์ให้เพื่อน" LINE share button
+- Fail: clear reason + prominent "ลองใหม่" retry button back to checkout
+
+---
+
+## Option C — Reliability & Correctness
+
+### C1. Fix `return_uri` in createCharge (Cloud Function)
+- `process.env.GCLOUD_PROJECT` resolves to the GCP project ID, not the LIFF URL
+- Replace with a `LIFF_HOST_URL` Firebase Function config/secret
+
+### C2. Bookings table pagination
+- Currently loads all bookings with no limit — will degrade as data grows
+- Add `limit(50)` + "โหลดเพิ่ม" load-more button using Firestore cursor (`startAfter`)
+
+### C3. TOCTOU slot availability race
+- Two users can book the same slot if they both pass the availability check before either writes
+- Fix with a Firestore transaction in `createCharge`: read slot + check + write atomically
+
+---
+
+## Suggested Order
+
+1. **Option A** — makes the admin panel fully functional
+2. **Option B** — improves the customer experience every user sees
+3. **Option C** — reliability hardening before scaling

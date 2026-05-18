@@ -37,7 +37,7 @@
                                 {{ isSelectionMode ? 'โหมดเลือกหลายรายการ ON' : 'โหมดเลือกหลายรายการ OFF' }}
                             </span>
                         </div>
-                        <input type="date" v-model="selectedDate" class="px-3 py-2 border border-gray-200 rounded-md" />
+                        <DatePicker v-model="selectedDate" />
                         <select v-if="currentView === 'weekly'" v-model="selectedCourtId" class="px-3 py-2 border border-gray-200 rounded-md">
                             <option v-for="court in courts" :key="court.id" :value="court.id">{{ court.name }}</option>
                         </select>
@@ -128,11 +128,11 @@
                     <h3 class="mt-0 mb-6 text-lg font-bold">สร้าง Slot อัตโนมัติ</h3>
                     <div class="mb-5">
                         <label class="block mb-2 font-medium">ตั้งแต่วันที่</label>
-                        <input type="date" v-model="genStart" class="w-full px-3 py-3 border border-gray-200 rounded-lg" />
+                        <DatePicker v-model="genStart" class="w-full" />
                     </div>
                     <div class="mb-5">
                         <label class="block mb-2 font-medium">ถึงวันที่</label>
-                        <input type="date" v-model="genEnd" class="w-full px-3 py-3 border border-gray-200 rounded-lg" />
+                        <DatePicker v-model="genEnd" class="w-full" />
                     </div>
                     <div v-if="previewSlotCount > 0" class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-sm font-semibold text-ant-blue">
                         จะสร้าง {{ previewSlotCount }} slots ({{ previewDays }} วัน × {{ courts.length }} คอร์ท × {{ previewHours }} ชั่วโมง)
@@ -170,6 +170,7 @@
 <script>
 import AdminSidebar from '../../components/AdminSidebar.vue'
 import SlotItem from '../../components/SlotItem.vue'
+import DatePicker from '../../components/DatePicker.vue'
 import { mapState, mapActions } from 'pinia'
 import { useConfigStore } from '../../stores/config'
 import { useToastStore } from '../../stores/toast'
@@ -180,7 +181,7 @@ import { collection, query, where, getDocs, writeBatch, doc, updateDoc, onSnapsh
 import { format, addDays, eachDayOfInterval, parseISO } from 'date-fns'
 
 export default {
-    components: { AdminSidebar, SlotItem },
+    components: { AdminSidebar, SlotItem, DatePicker },
     data() {
         return {
             currentView: 'daily',

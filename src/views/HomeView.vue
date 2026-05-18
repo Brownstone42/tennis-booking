@@ -12,8 +12,8 @@
                 <button
                     v-for="date in availableDates"
                     :key="date.toISOString()"
-                    class="shrink-0 w-[70px] px-2 py-3 border rounded-xl bg-white flex flex-col items-center cursor-pointer transition-all duration-200"
-                    :class="isSameDay(date, selectedDate) ? 'bg-line-green border-line-green text-white' : 'border-gray-200'"
+                    class="shrink-0 w-[70px] px-2 py-3 border rounded-xl flex flex-col items-center cursor-pointer transition-all duration-200"
+                    :class="isSameDay(date, selectedDate) ? 'bg-line-green border-line-green text-white' : 'bg-white border-gray-200 text-gray-800'"
                     @click="selectDate(date)"
                 >
                     <span class="text-xs uppercase">{{ format(date, 'EEE') }}</span>
@@ -31,9 +31,9 @@
                     <button
                         v-for="court in courts"
                         :key="court.id"
-                        class="shrink-0 w-[100px] px-3 py-3 border rounded-xl bg-white text-center cursor-pointer relative transition-all duration-200"
+                        class="shrink-0 w-[100px] px-3 py-3 border rounded-xl text-center cursor-pointer relative transition-all duration-200"
                         :class="[
-                            selectedCourtId === court.id ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200',
+                            selectedCourtId === court.id ? 'bg-gray-800 text-white border-gray-800' : 'bg-white border-gray-200 text-gray-800',
                             isCourtFull(court.id) && selectedCourtId !== court.id ? 'bg-red-50 border-red-100' : ''
                         ]"
                         @click="selectCourt(court.id)"
@@ -67,7 +67,7 @@
                         <button
                             v-for="hour in timeSlots"
                             :key="hour"
-                            class="px-3 py-[18px] border-[1.5px] rounded-2xl bg-white flex flex-col items-center justify-center cursor-pointer transition-all duration-[250ms] relative shadow-sm"
+                            class="px-3 py-[18px] border-[1.5px] rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all duration-[250ms] relative shadow-sm"
                             :class="timeSlotClass(hour)"
                             :disabled="isBooked(hour) || isLoading"
                             @click="toggleHour(hour)"
@@ -243,7 +243,7 @@ export default {
             if (this.selectedHours.includes(hour)) return 'bg-line-green border-line-green shadow-[0_8px_16px_rgba(0,185,0,0.2)]'
             if (this.isMyBooking(hour)) return 'bg-blue-50 border-blue-200 cursor-not-allowed'
             if (this.isBooked(hour)) return 'bg-gray-50 border-gray-100 cursor-not-allowed shadow-none text-gray-300'
-            return 'border-[#f0f3f5] hover:border-[#00b90044] hover:bg-gray-50 hover:-translate-y-0.5 hover:shadow-[0_6px_12px_rgba(0,185,0,0.08)]'
+            return 'bg-white border-[#f0f3f5] hover:border-[#00b90044] hover:bg-gray-50 hover:-translate-y-0.5 hover:shadow-[0_6px_12px_rgba(0,185,0,0.08)]'
         },
         async fetchAvailability() {
             if (this.unsubscribe) this.unsubscribe()

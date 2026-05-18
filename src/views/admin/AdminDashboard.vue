@@ -64,11 +64,7 @@
 
                     <!-- Filter bar -->
                     <div class="flex flex-wrap gap-3 mb-5 pb-5 border-b border-gray-100">
-                        <input
-                            type="date"
-                            v-model="filterDate"
-                            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-ant-blue"
-                        />
+                        <DatePicker v-model="filterDate" placeholder="กรองตามวันที่" />
                         <select v-model="filterStatus" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-ant-blue">
                             <option value="">ทุกสถานะ</option>
                             <option value="paid">สำเร็จ</option>
@@ -102,7 +98,7 @@
                             </template>
                             <template v-else>
                                 <tr v-for="booking in filteredBookings" :key="booking.id">
-                                    <td class="p-4 border-b border-gray-100 text-sm">{{ booking.date }}</td>
+                                    <td class="p-4 border-b border-gray-100 text-sm">{{ formatDate(booking.date) }}</td>
                                     <td class="p-4 border-b border-gray-100 text-sm">{{ booking.hours?.join(', ') }}:00</td>
                                     <td class="p-4 border-b border-gray-100 text-sm">คอร์ท {{ booking.courtId }}</td>
                                     <td class="p-4 border-b border-gray-100 text-sm">{{ booking.displayName }}</td>
@@ -141,16 +137,17 @@
 
 <script>
 import AdminSidebar from '../../components/AdminSidebar.vue'
+import DatePicker from '../../components/DatePicker.vue'
 import { mapState } from 'pinia'
 import { useConfigStore } from '../../stores/config'
 import { auth, db } from '../../firebase'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { onAuthStateChanged } from 'firebase/auth'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { th } from 'date-fns/locale'
 
 export default {
-    components: { AdminSidebar },
+    components: { AdminSidebar, DatePicker },
     data() {
         return {
             bookings: [],
@@ -201,6 +198,10 @@ export default {
         }
     },
     methods: {
+        formatDate(dateStr) {
+            if (!dateStr) return ''
+            return format(parseISO(dateStr), 'dd/MM/yyyy')
+        },
         clearFilters() {
             this.filterDate = ''
             this.filterStatus = ''
