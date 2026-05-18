@@ -3,7 +3,6 @@ const { setGlobalOptions } = require('firebase-functions/v2')
 const { initializeApp } = require('firebase-admin/app')
 const { getFirestore, FieldValue } = require('firebase-admin/firestore')
 const omise = require('omise')
-const crypto = require('crypto')
 
 initializeApp()
 const db = getFirestore()
@@ -161,58 +160,48 @@ exports.checkBookingStatus = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (re
     }
 })
 
-exports.omiseWebhook = onRequest({ secrets: ['OMISE_WEBHOOK_SECRET'] }, async (req, res) => {
-    const OMISE_WEBHOOK_SECRET = process.env.OMISE_WEBHOOK_SECRET
-    if (!OMISE_WEBHOOK_SECRET) {
-        console.error('OMISE_WEBHOOK_SECRET not configured')
-        res.status(500).send('Server configuration error')
-        return
-    }
-
-    const signature = req.headers['x-omise-signature']
-    if (!signature) {
-        console.warn('Webhook rejected: missing x-omise-signature header')
-        res.status(401).send('Unauthorized')
-        return
-    }
-
-    const expected = crypto
-        .createHmac('sha256', OMISE_WEBHOOK_SECRET)
-        .update(req.rawBody)
-        .digest('hex')
-
-    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
-        console.warn('Webhook rejected: signature mismatch')
-        res.status(401).send('Invalid signature')
-        return
-    }
-
+exports.omiseWebhook = onRequest({ secrets: ['OMISE_SECRET_KEY'] }, async (req, res) => {
     const event = req.body
-    console.log('Omise Webhook received! Key:', event.key, 'Full Payload:', JSON.stringify(event))
-    if (event.key === 'charge.complete') {
-        const charge = event.data
-        try {
-            const snapshot = await db
-                .collection('bookings')
-                .where('omiseChargeId', '==', charge.id)
-                .limit(1)
-                .get()
-
-            if (!snapshot.empty) {
-                let newStatus = charge.status === 'successful' ? 'paid' : 'failed'
-                // If Omise specifically says it's expired, update status to 'expired'
-                if (charge.status === 'failed' && charge.failure_code === 'expired_charge') {
-                    newStatus = 'expired'
-                }
-
-                await snapshot.docs[0].ref.update({
-                    status: newStatus,
-                    paidAt: charge.status === 'successful' ? FieldValue.serverTimestamp() : null
-                })
-            }
-        } catch (error) {
-            console.error('Webhook Error:', error)
-        }
+    if (event.key !== 'charge.complete') {
+        res.status(200).send('OK')
+        return
     }
+
+    const chargeId = event.data?.id
+    if (!chargeId) {
+        res.status(400).send('Missing charge id')
+        return
+    }
+
+    try {
+        // Re-verify charge status directly with Omise — never trust webhook payload alone
+        const OMISE_SECRET_KEY = process.env.OMISE_SECRET_KEY
+        const client = omise({ secretKey: OMISE_SECRET_KEY })
+        const charge = await client.charges.retrieve(chargeId)
+
+        console.log('Omise Webhook: charge', chargeId, 'status', charge.status)
+
+        const snapshot = await db
+            .collection('bookings')
+            .where('omiseChargeId', '==', chargeId)
+            .limit(1)
+            .get()
+
+        if (!snapshot.empty) {
+            let newStatus = charge.status === 'successful' ? 'paid' : 'failed'
+            if (charge.status === 'failed' && charge.failure_code === 'expired_charge') {
+                newStatus = 'expired'
+            }
+            await snapshot.docs[0].ref.update({
+                status: newStatus,
+                paidAt: charge.status === 'successful' ? FieldValue.serverTimestamp() : null
+            })
+        }
+    } catch (error) {
+        console.error('Webhook Error:', error)
+        res.status(500).send('Internal error')
+        return
+    }
+
     res.status(200).send('OK')
 })
