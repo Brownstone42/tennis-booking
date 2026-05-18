@@ -18,7 +18,8 @@
       "Read(//tmp/**)",
       "Bash(start *)",
       "Bash(npm install *)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "Bash(Test-Path *)"
     ]
   },
   "enabledPlugins": {

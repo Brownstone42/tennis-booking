@@ -254,7 +254,7 @@ export default {
                         name: 'payment',
                         query: {
                             bookingId: result.data.bookingId,
-                            authorizeUri: result.data.authorizeUri,
+                            authorizeUri: this.paymentMethod === 'credit_card' ? result.data.authorizeUri : undefined,
                             qrImage: result.data.qrImage,
                             amount: this.totalPrice
                         }

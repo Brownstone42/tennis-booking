@@ -50,8 +50,7 @@ exports.createCharge = onCall({ secrets: ['OMISE_SECRET_KEY'] }, async (request)
             amount: amountInSatang,
             currency: 'thb',
             description: `Booking for ${displayName} at Court ${courtId} on ${date}`,
-            // return_uri สำหรับกรณีที่ลูกค้าไม่ได้จ่ายผ่านหน้าเรา (เช่นไปจ่ายที่แอปธนาคารแล้วระบบเด้งกลับ)
-            return_uri: `https://${process.env.GCLOUD_PROJECT}.web.app/success`,
+            return_uri: `${process.env.APP_HOST_URL}/success`,
             expires_at: expiresAt,
             metadata: { tenantId, courtId, date, hours, phone, userId }
         }
